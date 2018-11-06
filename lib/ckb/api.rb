@@ -1,3 +1,5 @@
+require_relative 'utils'
+
 require 'json'
 require 'net/http'
 require 'uri'
@@ -5,17 +7,6 @@ require 'sha3'
 
 module Ckb
   URL = "http://localhost:3030"
-
-  def self.hex_to_bin(s)
-    if s.start_with?("0x")
-      s = s[2..-1]
-    end
-    s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
-  end
-
-  def self.bin_to_hex(s)
-    s.bytes.map { |b| b.to_s(16).rjust(2, "0") }.join
-  end
 
   class Api
     attr_reader :uri
@@ -35,16 +26,18 @@ module Ckb
     def calculate_redeem_script_hash(pubkey_bin)
       outpoint = get_system_redeem_script_outpoint
       s = SHA3::Digest::SHA256.new
-      s << outpoint.hash
+      s << outpoint.hash_value
       s << [outpoint.index].pack("V")
       s << "|"
-      s << Ckb.bin_to_hex(pubkey_bin)
+      # We could of course just hash raw bytes, but since right now CKB
+      # CLI already uses this scheme, we stick to the same way for compatibility
+      s << Ckb::Utils.bin_to_hex(pubkey_bin)
       s.digest
     end
 
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
     def get_system_redeem_script_outpoint
-      OpenStruct.new(hash: Ckb.hex_to_bin(genesis_block[:transactions][0][:hash]),
+      OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
                      index: 0)
     end
 
