@@ -1,0 +1,23 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    bitcoin-secp256k1 (0.4.0)
+      ffi (>= 1.9.10)
+    coderay (1.1.2)
+    ffi (1.9.25)
+    method_source (0.9.1)
+    pry (0.12.0)
+      coderay (~> 1.1.0)
+      method_source (~> 0.9.0)
+    sha3 (1.0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bitcoin-secp256k1
+  pry
+  sha3
+
+BUNDLED WITH
+   1.17.1
