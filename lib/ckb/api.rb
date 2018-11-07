@@ -65,5 +65,9 @@ module Ckb
     def get_transaction(tx_hash_bin)
       rpc_request("get_transaction", params: [Ckb::Utils.bin_to_prefix_hex(tx_hash_bin)])[:result]
     end
+
+    def send_transaction(transaction)
+      rpc_request("send_transaction", params: [transaction])[:result]
+    end
   end
 end
