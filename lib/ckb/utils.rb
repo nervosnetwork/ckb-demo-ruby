@@ -10,5 +10,9 @@ module Ckb
     def self.bin_to_hex(s)
       s.bytes.map { |b| b.to_s(16).rjust(2, "0") }.join
     end
+
+    def self.bin_to_prefix_hex(s)
+      "0x#{bin_to_hex(s)}"
+    end
   end
 end

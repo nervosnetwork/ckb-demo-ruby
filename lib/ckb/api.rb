@@ -49,8 +49,21 @@ module Ckb
       rpc_request("get_block_hash", params: [block_number])[:result]
     end
 
-    def get_block(block_hash)
-      rpc_request("get_block", params: [block_hash])[:result]
+    def get_block(block_hash_hex)
+      rpc_request("get_block", params: [block_hash_hex])[:result]
+    end
+
+    def get_tip_number
+      rpc_request("get_tip_header")[:result][:raw][:number]
+    end
+
+    def get_cells_by_redeem_script_hash(hash_bin, from, to)
+      params = [Ckb::Utils.bin_to_prefix_hex(hash_bin), from, to]
+      rpc_request("get_cells_by_redeem_script_hash", params: params)[:result]
+    end
+
+    def get_transaction(tx_hash_bin)
+      rpc_request("get_transaction", params: [Ckb::Utils.bin_to_prefix_hex(tx_hash_bin)])[:result]
     end
   end
 end
