@@ -5,6 +5,8 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
+  MIN_CELL_CAPACITY = 40
+
   class Wallet
     attr_reader :api
     attr_reader :privkey
@@ -44,6 +46,10 @@ module Ckb
     end
 
     def send_amount(target_address, amount)
+      if amount < MIN_CELL_CAPACITY
+        raise "amount cannot be less than #{MIN_CELL_CAPACITY}"
+      end
+
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       input_amounts = 0
       inputs = []
@@ -73,7 +79,7 @@ module Ckb
         }
         inputs << input
         input_amounts += cell[:capacity]
-        if input_amounts >= amount
+        if input_amounts >= amount && (input_amounts - amount) >= MIN_CELL_CAPACITY
           break
         end
       end
