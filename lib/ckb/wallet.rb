@@ -25,7 +25,7 @@ module Ckb
     end
 
     def address
-      Ckb::Utils.bin_to_prefix_hex(redeem_script_hash)
+      Ckb::Utils.bin_to_prefix_hex(type_hash)
     end
 
     def get_unspent_cells
@@ -34,7 +34,7 @@ module Ckb
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_redeem_script_hash(redeem_script_hash, current_from, current_to)
+        cells = api.get_cells_by_type_hash(type_hash, current_from, current_to)
         results.concat(cells)
         current_from = current_to + 1
       end
@@ -67,12 +67,9 @@ module Ckb
           },
           unlock: {
             version: 0,
-            arguments: arguments.map { |a| a.bytes.to_a },
-            redeem_reference: {
-              hash: Ckb::Utils.bin_to_prefix_hex(api.get_system_redeem_script_outpoint.hash_value),
-              index: api.get_system_redeem_script_outpoint.index
-            },
-            redeem_arguments: [
+            args: arguments.map { |a| a.bytes.to_a },
+            reference: Ckb::Utils.bin_to_prefix_hex(api.verify_cell_hash),
+            signed_args: [
               Ckb::Utils.bin_to_hex(pubkey)
             ].map { |a| a.bytes.to_a }
           }
@@ -116,8 +113,8 @@ module Ckb
     end
 
     private
-    def redeem_script_hash
-      @__redeem_script_hash ||= api.calculate_redeem_script_hash(pubkey)
+    def type_hash
+      @__type_hash ||= api.calculate_type_hash(pubkey)
     end
 
     def self.random(api)

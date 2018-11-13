@@ -20,14 +20,16 @@ module Ckb
         uri,
         "{\"id\": 1, \"jsonrpc\": \"2.0\", \"method\": \"#{method}\", \"params\": #{params.to_json}}",
         "Content-Type" => "application/json")
-      JSON.parse(response.body, symbolize_names: true)
+      result = JSON.parse(response.body, symbolize_names: true)
+      if result[:error]
+        raise "jsonrpc error: #{result[:error]}"
+      end
+      result
     end
 
-    def calculate_redeem_script_hash(pubkey_bin)
-      outpoint = get_system_redeem_script_outpoint
+    def calculate_type_hash(pubkey_bin)
       s = SHA3::Digest::SHA256.new
-      s << outpoint.hash_value
-      s << [outpoint.index].pack("V")
+      s << verify_cell_hash
       s << "|"
       # We could of course just hash raw bytes, but since right now CKB
       # CLI already uses this scheme, we stick to the same way for compatibility
@@ -39,6 +41,10 @@ module Ckb
     def get_system_redeem_script_outpoint
       OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
                      index: 0)
+    end
+
+    def verify_cell_hash
+      SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][0][:data].pack("c*"))
     end
 
     def genesis_block
@@ -57,9 +63,9 @@ module Ckb
       rpc_request("get_tip_header")[:result][:raw][:number]
     end
 
-    def get_cells_by_redeem_script_hash(hash_bin, from, to)
+    def get_cells_by_type_hash(hash_bin, from, to)
       params = [Ckb::Utils.bin_to_prefix_hex(hash_bin), from, to]
-      rpc_request("get_cells_by_redeem_script_hash", params: params)[:result]
+      rpc_request("get_cells_by_type_hash", params: params)[:result]
     end
 
     def get_transaction(tx_hash_bin)
