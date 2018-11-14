@@ -27,16 +27,6 @@ module Ckb
       result
     end
 
-    def calculate_type_hash(pubkey_bin)
-      s = SHA3::Digest::SHA256.new
-      s << verify_cell_hash
-      s << "|"
-      # We could of course just hash raw bytes, but since right now CKB
-      # CLI already uses this scheme, we stick to the same way for compatibility
-      s << Ckb::Utils.bin_to_hex(pubkey_bin)
-      s.digest
-    end
-
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
     def get_system_redeem_script_outpoint
       OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
@@ -63,13 +53,13 @@ module Ckb
       rpc_request("get_tip_header")[:result][:raw][:number]
     end
 
-    def get_cells_by_type_hash(hash_bin, from, to)
-      params = [Ckb::Utils.bin_to_prefix_hex(hash_bin), from, to]
+    def get_cells_by_type_hash(hash_hex, from, to)
+      params = [hash_hex, from, to]
       rpc_request("get_cells_by_type_hash", params: params)[:result]
     end
 
-    def get_transaction(tx_hash_bin)
-      rpc_request("get_transaction", params: [Ckb::Utils.bin_to_prefix_hex(tx_hash_bin)])[:result]
+    def get_transaction(tx_hash_hex)
+      rpc_request("get_transaction", params: [tx_hash_hex])[:result]
     end
 
     def send_transaction(transaction)

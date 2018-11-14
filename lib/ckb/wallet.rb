@@ -20,12 +20,8 @@ module Ckb
       @privkey = privkey
     end
 
-    def pubkey
-      Secp256k1::PrivateKey.new(privkey: privkey).pubkey.serialize
-    end
-
     def address
-      Ckb::Utils.bin_to_prefix_hex(type_hash)
+      verify_type_hash
     end
 
     def get_unspent_cells
@@ -34,7 +30,7 @@ module Ckb
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_type_hash(type_hash, current_from, current_to)
+        cells = api.get_cells_by_type_hash(verify_type_hash, current_from, current_to)
         results.concat(cells)
         current_from = current_to + 1
       end
@@ -70,7 +66,7 @@ module Ckb
             args: arguments.map { |a| a.bytes.to_a },
             reference: Ckb::Utils.bin_to_prefix_hex(api.verify_cell_hash),
             signed_args: [
-              Ckb::Utils.bin_to_hex(pubkey)
+              Ckb::Utils.bin_to_hex(pubkey_bin)
             ].map { |a| a.bytes.to_a }
           }
         }
@@ -109,12 +105,25 @@ module Ckb
     end
 
     def get_transaction(hash_hex)
-      api.get_transaction(Ckb::Utils.hex_to_bin(hash_hex))
+      api.get_transaction(hash_hex)
     end
 
     private
-    def type_hash
-      @__type_hash ||= api.calculate_type_hash(pubkey)
+    def pubkey_bin
+      Secp256k1::PrivateKey.new(privkey: privkey).pubkey.serialize
+    end
+
+    def verify_type_hash
+      @__verify_type_hash ||=
+        begin
+          s = SHA3::Digest::SHA256.new
+          s << api.verify_cell_hash
+          s << "|"
+          # We could of course just hash raw bytes, but since right now CKB
+          # CLI already uses this scheme, we stick to the same way for compatibility
+          s << Ckb::Utils.bin_to_hex(pubkey_bin)
+          Ckb::Utils.bin_to_prefix_hex(s.digest)
+        end
     end
 
     def self.random(api)
