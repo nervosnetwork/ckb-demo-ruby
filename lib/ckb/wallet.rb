@@ -94,8 +94,8 @@ module Ckb
         version: 0,
         deps: [
           {
-            hash: Ckb::Utils.bin_to_prefix_hex(api.get_system_redeem_script_outpoint.hash_value),
-            index: api.get_system_redeem_script_outpoint.index
+            hash: Ckb::Utils.bin_to_prefix_hex(api.basic_verify_script_outpoint.hash_value),
+            index: api.basic_verify_script_outpoint.index
           }
         ],
         inputs: inputs,

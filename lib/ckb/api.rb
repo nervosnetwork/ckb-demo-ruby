@@ -28,13 +28,23 @@ module Ckb
     end
 
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
-    def get_system_redeem_script_outpoint
+    def basic_verify_script_outpoint
       OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
                      index: 0)
     end
 
     def verify_cell_hash
       SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][0][:data].pack("c*"))
+    end
+
+    # Returns a contract that could load Ruby source code in CKB
+    def mruby_script_outpoint
+      OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
+                     index: 2)
+    end
+
+    def mruby_cell_hash
+      SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][2][:data].pack("c*"))
     end
 
     def genesis_block
