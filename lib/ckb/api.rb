@@ -33,7 +33,7 @@ module Ckb
                      index: 0)
     end
 
-    def verify_cell_hash
+    def verify_cell_hash_bin
       SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][0][:data].pack("c*"))
     end
 
@@ -44,7 +44,8 @@ module Ckb
     end
 
     def mruby_cell_hash
-      SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][2][:data].pack("c*"))
+      hash_bin = SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][2][:data].pack("c*"))
+      Ckb::Utils.bin_to_prefix_hash(hash_bin)
     end
 
     def genesis_block

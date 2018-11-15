@@ -99,7 +99,7 @@ module Ckb
               erc20_wallet.mruby_contract_type_hash(coin_name),
               signature_hex
             ].map { |a| a.bytes.to_a },
-            reference: Ckb::Utils.bin_to_prefix_hex(api.mruby_cell_hash),
+            reference: api.mruby_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
               coin_name,
@@ -161,7 +161,7 @@ module Ckb
           unlock: {
             version: 0,
             args: arguments.map { |a| a.bytes.to_a },
-            reference: Ckb::Utils.bin_to_prefix_hex(api.verify_cell_hash),
+            reference: Ckb::Utils.bin_to_prefix_hex(api.verify_cell_hash_bin),
             signed_args: [
               Ckb::Utils.bin_to_hex(pubkey_bin)
             ].map { |a| a.bytes.to_a }
@@ -187,7 +187,7 @@ module Ckb
       @__verify_type_hash ||=
         begin
           s = SHA3::Digest::SHA256.new
-          s << api.verify_cell_hash
+          s << api.verify_cell_hash_bin
           s << "|"
           # We could of course just hash raw bytes, but since right now CKB
           # CLI already uses this scheme, we stick to the same way for compatibility

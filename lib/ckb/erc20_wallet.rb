@@ -54,7 +54,7 @@ module Ckb
     def mruby_unlock_script_json_object(coin_name)
       {
         version: 0,
-        reference: Ckb::Utils.bin_to_prefix_hex(api.mruby_cell_hash),
+        reference: api.mruby_cell_hash,
         signed_args: [
           UNLOCK_SCRIPT,
           coin_name,
@@ -68,7 +68,7 @@ module Ckb
     def mruby_contract_script_json_object(coin_name)
       {
         version: 0,
-        reference: Ckb::Utils.bin_to_prefix_hex(api.mruby_cell_hash),
+        reference: api.mruby_cell_hash,
         signed_args: [
           CONTRACT_SCRIPT,
           coin_name,
