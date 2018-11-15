@@ -1,4 +1,9 @@
+require "secp256k1"
+
 module Ckb
+  MIN_CELL_CAPACITY = 40
+  MIN_ERC20_CELL_CAPACITY = 48
+
   module Utils
     def self.hex_to_bin(s)
       if s.start_with?("0x")
@@ -13,6 +18,10 @@ module Ckb
 
     def self.bin_to_prefix_hex(s)
       "0x#{bin_to_hex(s)}"
+    end
+
+    def self.extract_pubkey(privkey_bin)
+      Secp256k1::PrivateKey.new(privkey: privkey_bin).pubkey.serialize
     end
   end
 end

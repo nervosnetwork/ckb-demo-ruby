@@ -1,12 +1,11 @@
 require_relative "api"
-require_relative 'utils'
+require_relative "erc20_wallet"
+require_relative "utils"
 
 require "secp256k1"
 require "securerandom"
 
 module Ckb
-  MIN_CELL_CAPACITY = 40
-
   class Wallet
     attr_reader :api
     attr_reader :privkey
@@ -41,13 +40,111 @@ module Ckb
       get_unspent_cells.map { |c| c[:capacity] }.reduce(0, &:+)
     end
 
-    def send_amount(target_address, amount)
-      if amount < MIN_CELL_CAPACITY
-        raise "amount cannot be less than #{MIN_CELL_CAPACITY}"
+    def send_capacity(target_address, capacity)
+      i = gather_inputs(capacity, MIN_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      outputs = [
+        {
+          capacity: capacity,
+          data: [],
+          lock: target_address
+        }
+      ]
+      if input_capacities > capacity
+        outputs << {
+          capacity: input_capacities - capacity,
+          data: [],
+          lock: self.address
+        }
+      end
+      tx = {
+        version: 0,
+        deps: [
+          {
+            hash: Ckb::Utils.bin_to_prefix_hex(api.basic_verify_script_outpoint.hash_value),
+            index: api.basic_verify_script_outpoint.index
+          }
+        ],
+        inputs: i.inputs,
+        outputs: outputs
+      }
+      api.send_transaction(tx)
+    end
+
+    def get_transaction(hash_hex)
+      api.get_transaction(hash_hex)
+    end
+
+    def create_erc20_cell(capacity, coin_name, coins)
+      i = gather_inputs(capacity, MIN_ERC20_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      data = [coins].pack("Q<")
+      s = SHA3::Digest::SHA256.new
+      s.update(Ckb::Utils.hex_to_bin(erc20_wallet.mruby_contract_type_hash(coin_name)))
+      s.update(data)
+      key = Secp256k1::PrivateKey.new(privkey: privkey)
+      signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+      signature_hex = Ckb::Utils.bin_to_hex(signature)
+
+      outputs = [
+        {
+          capacity: capacity,
+          data: data.bytes.to_a,
+          lock: erc20_wallet.address(coin_name),
+          contract: {
+            version: 0,
+            args: [
+              erc20_wallet.mruby_contract_type_hash(coin_name),
+              signature_hex
+            ].map { |a| a.bytes.to_a },
+            reference: Ckb::Utils.bin_to_prefix_hex(api.mruby_cell_hash),
+            signed_args: [
+              Ckb::CONTRACT_SCRIPT,
+              coin_name,
+              Ckb::Utils.bin_to_hex(pubkey_bin)
+            ].map { |a| a.bytes.to_a }
+          }
+        }
+      ]
+      if input_capacities > capacity
+        outputs << {
+          capacity: input_capacities - capacity,
+          data: [],
+          lock: self.address
+        }
+      end
+      tx = {
+        version: 0,
+        deps: [
+          {
+            hash: Ckb::Utils.bin_to_prefix_hex(api.basic_verify_script_outpoint.hash_value),
+            index: api.basic_verify_script_outpoint.index
+          },
+          {
+            hash: Ckb::Utils.bin_to_prefix_hex(api.mruby_script_outpoint.hash_value),
+            index: api.mruby_script_outpoint.index
+          }
+        ],
+        inputs: i.inputs,
+        outputs: outputs
+      }
+      api.send_transaction(tx)
+    end
+
+    def erc20_wallet
+      Ckb::Erc20Wallet.new(api, privkey)
+    end
+
+    private
+    def gather_inputs(capacity, min_capacity)
+      if capacity < min_capacity
+        raise "capacity cannot be less than #{min_capacity}"
       end
 
       key = Secp256k1::PrivateKey.new(privkey: privkey)
-      input_amounts = 0
+      input_capacities = 0
       inputs = []
       get_unspent_cells.each do |cell|
         arguments = ["signingmessage"]
@@ -71,46 +168,19 @@ module Ckb
           }
         }
         inputs << input
-        input_amounts += cell[:capacity]
-        if input_amounts >= amount && (input_amounts - amount) >= MIN_CELL_CAPACITY
+        input_capacities += cell[:capacity]
+        if input_capacities >= capacity && (input_capacities - capacity) >= min_capacity
           break
         end
       end
-      outputs = [
-        {
-          capacity: amount,
-          data: [],
-          lock: target_address
-        }
-      ]
-      if input_amounts > amount
-        outputs << {
-          capacity: input_amounts - amount,
-          data: [],
-          lock: self.address
-        }
+      if input_capacities < capacity
+        raise "Not enouch capacity!"
       end
-      tx = {
-        version: 0,
-        deps: [
-          {
-            hash: Ckb::Utils.bin_to_prefix_hex(api.basic_verify_script_outpoint.hash_value),
-            index: api.basic_verify_script_outpoint.index
-          }
-        ],
-        inputs: inputs,
-        outputs: outputs
-      }
-      api.send_transaction(tx)
+      OpenStruct.new(inputs: inputs, capacities: input_capacities)
     end
 
-    def get_transaction(hash_hex)
-      api.get_transaction(hash_hex)
-    end
-
-    private
     def pubkey_bin
-      Secp256k1::PrivateKey.new(privkey: privkey).pubkey.serialize
+      Ckb::Utils.extract_pubkey(privkey)
     end
 
     def verify_type_hash

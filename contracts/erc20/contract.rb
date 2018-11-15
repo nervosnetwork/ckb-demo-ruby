@@ -1,12 +1,24 @@
-if ARGV.length < 2
+# This contract needs 2 signed arguments:
+# 1. coin name, this is just a placeholder to distinguish between coins,
+# it will not be used in the actual contract. The pair of coin name and
+# pubkey uniquely identifies a coin.
+# 2. pubkey, used to perform supermode operations such as issuing new coins
+# This contract also needs 1 or 2 unsigned arguments:
+# 3. Current contract type hash, will be verified in unlock contract
+# 4. (optional) supermode signature, when present and verified, the transaction
+# can perform super mode operations
+if ARGV.length < 3
   raise "Not enough arguments!"
 end
 
 def hex_to_bin(s)
+  if s.start_with?("0x")
+    s = s[2..-1]
+  end
   s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
 end
 
-contract_type_hash = hex_to_bin(ARGV[1])
+contract_type_hash = hex_to_bin(ARGV[2])
 
 tx = CKB.load_tx
 
@@ -19,7 +31,7 @@ supermode = false
 # the script to a special mode by attaching a signature signed from private
 # key for the pubkey attached. With this signature, they will be able to
 # add more tokens.
-if ARGV.length >= 3
+if ARGV.length >= 4
   sha3 = Sha3.new
   sha3.update(contract_type_hash)
   tx["inputs"].each_with_index do |input, i|
@@ -28,12 +40,15 @@ if ARGV.length >= 3
     end
   end
   tx["outputs"].each_with_index do |output, i|
+    hash = CKB.load_script_hash(i, CKB::OUTPUT, CKB::CONTRACT)
     if CKB.load_script_hash(i, CKB::OUTPUT, CKB::CONTRACT) == contract_type_hash
       sha3.update(CKB::Cell.new(CKB::OUTPUT, i).read(0, 8))
     end
   end
 
-  unless Secp256k1.verify(hex_to_bin(ARGV[0]), hex_to_bin(ARGV[2]), sha3.final)
+  data = sha3.final
+
+  unless Secp256k1.verify(hex_to_bin(ARGV[1]), hex_to_bin(ARGV[3]), data)
     raise "Signature verification error!"
   end
   supermode = true
@@ -45,7 +60,7 @@ input_sum = tx["inputs"].size.times.map do |i|
   else
     0
   end
-end.sum
+end.reduce(&:+)
 
 output_sum = tx["outputs"].size.times.map do |i|
   if CKB.load_script_hash(i, CKB::OUTPUT, CKB::CONTRACT) == contract_type_hash
@@ -53,7 +68,7 @@ output_sum = tx["outputs"].size.times.map do |i|
   else
     0
   end
-end
+end.reduce(&:+)
 
 # This contract here allows destroying tokens, a different contract might
 # choose to forbid this.
