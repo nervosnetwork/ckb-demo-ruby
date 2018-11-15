@@ -3,9 +3,10 @@
 # different coin for ease of querying. In the actual contract this is
 # not used.
 # 2. pubkey, used to identify coin owner
-# This contracts also accepts one unsigned argument:
+# This contracts also accepts two unsigned argument:
 # 3. signature, signature used to present ownership
-if ARGV.length < 3
+# 4. hash indices, see below for explanation
+if ARGV.length < 4
   raise "Not enough arguments!"
 end
 
@@ -26,7 +27,7 @@ end
 # hash_indices is passed in as a string of format "1,2|3,4|5", this means
 # hash index 1 and 2 of inputs, index 3 and 4 of outputs, and index 5 of
 # deps. All indices here are 0-based.
-hash_indices = ARGV[2].split("|").map { |s| s.split(",") }
+hash_indices = ARGV[3].split("|").map { |s| s.split(",") }
 hash_indices[0].each do |input_index|
   input = tx["inputs"][input_index]
   sha3.update(input["hash"])
