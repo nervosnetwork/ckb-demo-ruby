@@ -51,28 +51,40 @@ module Ckb
     def send_amount(coin_name, erc20_address, amount)
     end
 
+    def mruby_unlock_script_json_object(coin_name)
+      {
+        version: 0,
+        reference: Ckb::Utils.bin_to_prefix_hex(api.mruby_cell_hash),
+        signed_args: [
+          UNLOCK_SCRIPT,
+          coin_name,
+          # We could of course just hash raw bytes, but since right now CKB
+          # CLI already uses this scheme, we stick to the same way for compatibility
+          Ckb::Utils.bin_to_hex(pubkey_bin)
+        ]
+      }
+    end
+
+    def mruby_contract_script_json_object(coin_name)
+      {
+        version: 0,
+        reference: Ckb::Utils.bin_to_prefix_hex(api.mruby_cell_hash),
+        signed_args: [
+          CONTRACT_SCRIPT,
+          coin_name,
+          # We could of course just hash raw bytes, but since right now CKB
+          # CLI already uses this scheme, we stick to the same way for compatibility
+          Ckb::Utils.bin_to_hex(pubkey_bin)
+        ]
+      }
+    end
+
     def mruby_unlock_type_hash(coin_name)
-      s = SHA3::Digest::SHA256.new
-      s << api.mruby_cell_hash
-      s << "|"
-      s << UNLOCK_SCRIPT
-      s << coin_name
-      # We could of course just hash raw bytes, but since right now CKB
-      # CLI already uses this scheme, we stick to the same way for compatibility
-      s << Ckb::Utils.bin_to_hex(pubkey_bin)
-      Ckb::Utils.bin_to_prefix_hex(s.digest)
+      Ckb::Utils.json_script_to_type_hash(mruby_unlock_script_json_object(coin_name))
     end
 
     def mruby_contract_type_hash(coin_name)
-      s = SHA3::Digest::SHA256.new
-      s << api.mruby_cell_hash
-      s << "|"
-      s << CONTRACT_SCRIPT
-      s << coin_name
-      # We could of course just hash raw bytes, but since right now CKB
-      # CLI already uses this scheme, we stick to the same way for compatibility
-      s << Ckb::Utils.bin_to_hex(pubkey_bin)
-      Ckb::Utils.bin_to_prefix_hex(s.digest)
+      Ckb::Utils.json_script_to_type_hash(mruby_contract_script_json_object(coin_name))
     end
 
     def get_transaction(hash_hex)

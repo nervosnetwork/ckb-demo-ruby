@@ -23,5 +23,20 @@ module Ckb
     def self.extract_pubkey(privkey_bin)
       Secp256k1::PrivateKey.new(privkey: privkey_bin).pubkey.serialize
     end
+
+    def self.json_script_to_type_hash(script)
+      s = SHA3::Digest::SHA256.new
+      if script[:reference]
+        s << hex_to_bin(script[:reference])
+      end
+      s << "|"
+      if script[:binary]
+        s << script[:binary]
+      end
+      (script[:signed_args] || []).each do |arg|
+        s << arg
+      end
+      bin_to_prefix_hex(s.digest)
+    end
   end
 end
