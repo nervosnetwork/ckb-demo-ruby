@@ -28,21 +28,24 @@ end
 # hash index 1 and 2 of inputs, index 3 and 4 of outputs, and index 5 of
 # deps. All indices here are 0-based.
 hash_indices = ARGV[3].split("|").map { |s| s.split(",") }
-hash_indices[0].each do |input_index|
+(hash_indices[0] || []).each do |input_index|
+  input_index = input_index.to_i
   input = tx["inputs"][input_index]
   sha3.update(input["hash"])
   sha3.update(input["index"].to_s)
   sha3.update(CKB.load_script_hash(input_index, CKB::INPUT, CKB::LOCK))
 end
-hash_indices[1].each do |output_index|
+(hash_indices[1] || []).each do |output_index|
+  output_index = output_index.to_i
   output = tx["outputs"][output_index]
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
-  if hash = CKB.load_script_hash(input_index, CKB::OUTPUT, CKB::CONTRACT)
+  if hash = CKB.load_script_hash(output_index, CKB::OUTPUT, CKB::CONTRACT)
     sha3.update(hash)
   end
 end
-hash_indices[2].each do |dep_index|
+(hash_indices[2] || []).each do |dep_index|
+  dep_index = dep_index.to_i
   dep = tx["deps"][dep_index]
   sha3.update(dep["hash"])
   sha3.update(dep["index"].to_s)

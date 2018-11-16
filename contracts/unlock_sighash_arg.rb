@@ -7,10 +7,6 @@ if ARGV.length < 3
   raise "Not enough arguments!"
 end
 
-def bin_to_hex(s)
-  s.bytes.map { |b| b.to_s(16).rjust(2, "0") }.join
-end
-
 def hex_to_bin(s)
   if s.start_with?("0x")
     s = s[2..-1]
