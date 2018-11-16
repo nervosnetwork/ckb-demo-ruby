@@ -73,13 +73,47 @@ module Ckb
       api.get_transaction(hash_hex)
     end
 
-    def create_erc20_cell(capacity, coin_name, coins)
+    def sign_capacity_for_erc20_cell(capacity_to_pay, coin_output, coin_output_index: 0, input_start_offset: 0, output_start_offset: 1)
+      if capacity_to_pay < coin_output[:capacity]
+        raise "Not enough capacity paid!"
+      end
+
+      i = gather_inputs(capacity_to_pay, MIN_ERC20_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      outputs = [coin_output]
+      if input_capacities > capacity_to_pay
+        outputs << {
+          capacity: input_capacities - capacity_to_pay,
+          data: [],
+          lock: self.address
+        }
+      end
+
+      signed_inputs = i.inputs.size.times.map { |i| i + input_start_offset}
+      signed_outputs = [coin_output_index] + (outputs.size - 1).times.map { |i| i + output_start_offset}
+      hash_indices = "#{signed_inputs.join(",")}|#{signed_outputs.join(",")}|"
+      {
+        version: 0,
+        deps: [api.mruby_script_outpoint],
+        inputs: sign_inputs(i.inputs, outputs, hash_indices: hash_indices),
+        outputs: outputs
+      }
+    end
+
+    def created_coin_info(coin_name)
+      CoinInfo.new(coin_name, Ckb::Utils.bin_to_hex(pubkey_bin))
+    end
+
+    def create_erc20_coin(capacity, coin_name, coins)
+      coin_info = created_coin_info(coin_name)
+
       i = gather_inputs(capacity, MIN_ERC20_CELL_CAPACITY)
       input_capacities = i.capacities
 
       data = [coins].pack("Q<")
       s = SHA3::Digest::SHA256.new
-      s.update(Ckb::Utils.hex_to_bin(erc20_wallet.mruby_contract_type_hash(coin_name)))
+      s.update(Ckb::Utils.hex_to_bin(erc20_wallet(coin_info).mruby_contract_type_hash))
       s.update(data)
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
@@ -89,18 +123,18 @@ module Ckb
         {
           capacity: capacity,
           data: data,
-          lock: erc20_wallet.address(coin_name),
+          lock: erc20_wallet(coin_info).address,
           contract: {
             version: 0,
             args: [
-              erc20_wallet.mruby_contract_type_hash(coin_name),
+              erc20_wallet(coin_info).mruby_contract_type_hash,
               signature_hex
             ],
             reference: api.mruby_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
-              coin_name,
-              Ckb::Utils.bin_to_hex(pubkey_bin)
+              coin_info.name,
+              coin_info.pubkey
             ]
           }
         }
@@ -118,16 +152,17 @@ module Ckb
         inputs: sign_inputs(i.inputs, outputs),
         outputs: outputs
       }
-      api.send_transaction(tx)
+      hash = api.send_transaction(tx)
+      OpenStruct.new(tx_hash: hash, coin_info: coin_info)
     end
 
-    def erc20_wallet
-      Ckb::Erc20Wallet.new(api, privkey)
+    def erc20_wallet(coin_info)
+      Ckb::Erc20Wallet.new(api, privkey, coin_info)
     end
 
     private
-    def sign_inputs(inputs, outputs)
-      hash_indices = "#{inputs.size.times.to_a.join(",")}|#{outputs.size.times.to_a.join(",")}|"
+    def sign_inputs(inputs, outputs, hash_indices: nil)
+      hash_indices ||= "#{inputs.size.times.to_a.join(",")}|#{outputs.size.times.to_a.join(",")}|"
       # By default we sign with sighash all mode, so we only need to
       # calculate signing message and signature once here.
       s = SHA3::Digest::SHA256.new
@@ -147,7 +182,6 @@ module Ckb
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
       signature_hex = Ckb::Utils.bin_to_hex(signature)
-      puts "Signing message: #{Ckb::Utils.bin_to_hex(s.digest)}"
 
       inputs.map do |input|
         unlock = input[:unlock].merge(args: [signature_hex, hash_indices])
