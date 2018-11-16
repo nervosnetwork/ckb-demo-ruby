@@ -39,13 +39,15 @@ module Ckb
 
     # Returns a contract that could load Ruby source code in CKB
     def mruby_script_outpoint
-      OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
-                     index: 2)
+      {
+        hash: genesis_block[:transactions][0][:hash],
+        index: 2
+      }
     end
 
     def mruby_cell_hash
       hash_bin = SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][2][:data].pack("c*"))
-      Ckb::Utils.bin_to_prefix_hash(hash_bin)
+      Ckb::Utils.bin_to_prefix_hex(hash_bin)
     end
 
     def genesis_block
@@ -74,6 +76,52 @@ module Ckb
     end
 
     def send_transaction(transaction)
+      # In Ruby, bytes are represented using String, but Rust uses Vec<u8>
+      # to represent bytes, which needs raw array in JSON part, hence we
+      # have to do type conversions here.
+      transaction[:inputs].each do |input|
+        input[:unlock][:args] = input[:unlock][:args].map do |arg|
+          if arg.is_a? String
+            arg.bytes.to_a
+          else
+            arg
+          end
+        end
+        input[:unlock][:signed_args] = input[:unlock][:signed_args].map do |arg|
+          if arg.is_a? String
+            arg.bytes.to_a
+          else
+            arg
+          end
+        end
+        if input[:binary] && input[:binary].is_a?(String)
+          input[:binary] = input[:binary].bytes.to_a
+        end
+      end
+      transaction[:outputs].each do |output|
+        if output[:data].is_a? String
+          output[:data] = output[:data].bytes.to_a
+        end
+        if output[:contract]
+          output[:contract][:args] = output[:contract][:args].map do |arg|
+            if arg.is_a? String
+              arg.bytes.to_a
+            else
+              arg
+            end
+          end
+          output[:contract][:signed_args] = output[:contract][:signed_args].map do |arg|
+            if arg.is_a? String
+              arg.bytes.to_a
+            else
+              arg
+            end
+          end
+          if output[:contract][:binary] && output[:contract][:binary].is_a?(String)
+            output[:contract][:binary] = output[:contract][:binary].bytes.to_a
+          end
+        end
+      end
       rpc_request("send_transaction", params: [transaction])[:result]
     end
   end

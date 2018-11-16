@@ -93,7 +93,7 @@ module Ckb
 
     private
     def pubkey_bin
-      Ckb::Utils.extract_pubkey(privkey)
+      Ckb::Utils.extract_pubkey_bin(privkey)
     end
 
     def self.random(api)

@@ -6,6 +6,8 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
+  VERIFY_SCRIPT = File.read(File.expand_path("../../../contracts/unlock_sighash_arg.rb", __FILE__))
+
   class Wallet
     attr_reader :api
     attr_reader :privkey
@@ -60,13 +62,8 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [
-          {
-            hash: Ckb::Utils.bin_to_prefix_hex(api.basic_verify_script_outpoint.hash_value),
-            index: api.basic_verify_script_outpoint.index
-          }
-        ],
-        inputs: i.inputs,
+        deps: [api.mruby_script_outpoint],
+        inputs: sign_inputs(i.inputs, outputs),
         outputs: outputs
       }
       api.send_transaction(tx)
@@ -91,20 +88,20 @@ module Ckb
       outputs = [
         {
           capacity: capacity,
-          data: data.bytes.to_a,
+          data: data,
           lock: erc20_wallet.address(coin_name),
           contract: {
             version: 0,
             args: [
               erc20_wallet.mruby_contract_type_hash(coin_name),
               signature_hex
-            ].map { |a| a.bytes.to_a },
+            ],
             reference: api.mruby_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
               coin_name,
               Ckb::Utils.bin_to_hex(pubkey_bin)
-            ].map { |a| a.bytes.to_a }
+            ]
           }
         }
       ]
@@ -117,17 +114,8 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [
-          {
-            hash: Ckb::Utils.bin_to_prefix_hex(api.basic_verify_script_outpoint.hash_value),
-            index: api.basic_verify_script_outpoint.index
-          },
-          {
-            hash: Ckb::Utils.bin_to_prefix_hex(api.mruby_script_outpoint.hash_value),
-            index: api.mruby_script_outpoint.index
-          }
-        ],
-        inputs: i.inputs,
+        deps: [api.mruby_script_outpoint],
+        inputs: sign_inputs(i.inputs, outputs),
         outputs: outputs
       }
       api.send_transaction(tx)
@@ -138,34 +126,49 @@ module Ckb
     end
 
     private
+    def sign_inputs(inputs, outputs)
+      hash_indices = "#{inputs.size.times.to_a.join(",")}|#{outputs.size.times.to_a.join(",")}|"
+      # By default we sign with sighash all mode, so we only need to
+      # calculate signing message and signature once here.
+      s = SHA3::Digest::SHA256.new
+      s.update(hash_indices)
+      inputs.each do |input|
+        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
+        s.update(input[:previous_output][:index].to_s)
+        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
+      end
+      outputs.each do |output|
+        s.update(output[:capacity].to_s)
+        s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+        if output[:contract]
+          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+        end
+      end
+      key = Secp256k1::PrivateKey.new(privkey: privkey)
+      signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+      signature_hex = Ckb::Utils.bin_to_hex(signature)
+      puts "Signing message: #{Ckb::Utils.bin_to_hex(s.digest)}"
+
+      inputs.map do |input|
+        unlock = input[:unlock].merge(args: [signature_hex, hash_indices])
+        input.merge(unlock: unlock)
+      end
+    end
+
     def gather_inputs(capacity, min_capacity)
       if capacity < min_capacity
         raise "capacity cannot be less than #{min_capacity}"
       end
 
-      key = Secp256k1::PrivateKey.new(privkey: privkey)
       input_capacities = 0
       inputs = []
       get_unspent_cells.each do |cell|
-        arguments = ["signingmessage"]
-        hash1 = SHA3::Digest::SHA256.digest(arguments.join)
-        hash2 = SHA3::Digest::SHA256.digest(hash1)
-        signature = key.ecdsa_serialize(key.ecdsa_sign(hash2, raw: true))
-        signature_hex = Ckb::Utils.bin_to_hex(signature)
-        arguments.unshift(signature_hex)
         input = {
           previous_output: {
             hash: cell[:outpoint][:hash],
             index: cell[:outpoint][:index]
           },
-          unlock: {
-            version: 0,
-            args: arguments.map { |a| a.bytes.to_a },
-            reference: Ckb::Utils.bin_to_prefix_hex(api.verify_cell_hash_bin),
-            signed_args: [
-              Ckb::Utils.bin_to_hex(pubkey_bin)
-            ].map { |a| a.bytes.to_a }
-          }
+          unlock: verify_script_json_object
         }
         inputs << input
         input_capacities += cell[:capacity]
@@ -180,20 +183,24 @@ module Ckb
     end
 
     def pubkey_bin
-      Ckb::Utils.extract_pubkey(privkey)
+      Ckb::Utils.extract_pubkey_bin(privkey)
+    end
+
+    def verify_script_json_object
+      {
+        version: 0,
+        reference: api.mruby_cell_hash,
+        signed_args: [
+          VERIFY_SCRIPT,
+          # We could of course just hash raw bytes, but since right now CKB
+          # CLI already uses this scheme, we stick to the same way for compatibility
+          Ckb::Utils.bin_to_hex(pubkey_bin)
+        ]
+      }
     end
 
     def verify_type_hash
-      @__verify_type_hash ||=
-        begin
-          s = SHA3::Digest::SHA256.new
-          s << api.verify_cell_hash_bin
-          s << "|"
-          # We could of course just hash raw bytes, but since right now CKB
-          # CLI already uses this scheme, we stick to the same way for compatibility
-          s << Ckb::Utils.bin_to_hex(pubkey_bin)
-          Ckb::Utils.bin_to_prefix_hex(s.digest)
-        end
+      @__verify_type_hash ||= Ckb::Utils.json_script_to_type_hash(verify_script_json_object)
     end
 
     def self.random(api)

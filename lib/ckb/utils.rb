@@ -20,7 +20,7 @@ module Ckb
       "0x#{bin_to_hex(s)}"
     end
 
-    def self.extract_pubkey(privkey_bin)
+    def self.extract_pubkey_bin(privkey_bin)
       Secp256k1::PrivateKey.new(privkey: privkey_bin).pubkey.serialize
     end
 
