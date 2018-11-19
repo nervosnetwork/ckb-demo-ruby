@@ -2,7 +2,7 @@ require "secp256k1"
 
 module Ckb
   MIN_CELL_CAPACITY = 40
-  MIN_ERC20_CELL_CAPACITY = 48
+  MIN_UDT_CELL_CAPACITY = 48
 
   module Utils
     def self.hex_to_bin(s)

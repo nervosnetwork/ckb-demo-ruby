@@ -5,8 +5,8 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
-  UNLOCK_SCRIPT = File.read(File.expand_path("../../../contracts/erc20/unlock.rb", __FILE__))
-  CONTRACT_SCRIPT = File.read(File.expand_path("../../../contracts/erc20/contract.rb", __FILE__))
+  UNLOCK_SCRIPT = File.read(File.expand_path("../../../contracts/udt/unlock.rb", __FILE__))
+  CONTRACT_SCRIPT = File.read(File.expand_path("../../../contracts/udt/contract.rb", __FILE__))
 
   class CoinInfo
     attr_reader :name
@@ -18,7 +18,7 @@ module Ckb
     end
   end
 
-  class Erc20Wallet
+  class UdtWallet
     attr_reader :api
     attr_reader :privkey
     attr_reader :coin_info
@@ -68,11 +68,11 @@ module Ckb
       get_unspent_cells.map { |c| c[:amount] }.reduce(0, &:+)
     end
 
-    def generate_output(erc20_address, amount, capacity)
+    def generate_output(udt_address, amount, capacity)
       output = {
         capacity: capacity,
         data: [amount].pack("Q<"),
-        lock: erc20_address,
+        lock: udt_address,
         contract: {
           version: 0,
           args: [

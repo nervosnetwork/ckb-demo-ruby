@@ -1,5 +1,5 @@
 require_relative "api"
-require_relative "erc20_wallet"
+require_relative "udt_wallet"
 require_relative "utils"
 
 require "secp256k1"
@@ -73,12 +73,12 @@ module Ckb
       api.get_transaction(hash_hex)
     end
 
-    def sign_capacity_for_erc20_cell(capacity_to_pay, coin_output, coin_output_index: 0, input_start_offset: 0, output_start_offset: 1)
+    def sign_capacity_for_udt_cell(capacity_to_pay, coin_output, coin_output_index: 0, input_start_offset: 0, output_start_offset: 1)
       if capacity_to_pay < coin_output[:capacity]
         raise "Not enough capacity paid!"
       end
 
-      i = gather_inputs(capacity_to_pay, MIN_ERC20_CELL_CAPACITY)
+      i = gather_inputs(capacity_to_pay, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
       outputs = [coin_output]
@@ -105,15 +105,15 @@ module Ckb
       CoinInfo.new(coin_name, Ckb::Utils.bin_to_hex(pubkey_bin))
     end
 
-    def create_erc20_coin(capacity, coin_name, coins)
+    def create_udt_coin(capacity, coin_name, coins)
       coin_info = created_coin_info(coin_name)
 
-      i = gather_inputs(capacity, MIN_ERC20_CELL_CAPACITY)
+      i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
       data = [coins].pack("Q<")
       s = SHA3::Digest::SHA256.new
-      s.update(Ckb::Utils.hex_to_bin(erc20_wallet(coin_info).mruby_contract_type_hash))
+      s.update(Ckb::Utils.hex_to_bin(udt_wallet(coin_info).mruby_contract_type_hash))
       s.update(data)
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
@@ -123,11 +123,11 @@ module Ckb
         {
           capacity: capacity,
           data: data,
-          lock: erc20_wallet(coin_info).address,
+          lock: udt_wallet(coin_info).address,
           contract: {
             version: 0,
             args: [
-              erc20_wallet(coin_info).mruby_contract_type_hash,
+              udt_wallet(coin_info).mruby_contract_type_hash,
               signature_hex
             ],
             reference: api.mruby_cell_hash,
@@ -156,8 +156,8 @@ module Ckb
       OpenStruct.new(tx_hash: hash, coin_info: coin_info)
     end
 
-    def erc20_wallet(coin_info)
-      Ckb::Erc20Wallet.new(api, privkey, coin_info)
+    def udt_wallet(coin_info)
+      Ckb::UdtWallet.new(api, privkey, coin_info)
     end
 
     private
