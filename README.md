@@ -24,57 +24,60 @@ $ cp <path to ckb>/spec/res/cells/* cells/
 $ cp <path to mruby-contracts>/build/argv_source_entry cells/
 ```
 
-In this newly created folder, create a file named `config.toml` with the following content:
+In this newly created folder, create a file named `config.json` with the following content:
 
 ```
-[ckb]
-chain = "/home/ubuntu/foo/bar/spec.yaml"
-
-[logger]
-filter = "info,chain=debug"
-
-[rpc]
-listen_addr = "0.0.0.0:3030"
-
-[network]
-boot_nodes = [
-    "/ip4/47.75.42.29/tcp/12345/p2p/QmU6tySavbTF2uftZz1As2at4mxCr3QhhsFpfGpEbhBDiz"
-]
-reserved_nodes = []
-
-[miner]
-type_hash  = "0x70f11f57438ce880b4082dde77148fced17279cb3499d00ae21b73dc2971b566"
+{
+    "ckb": {
+        "chain": "/home/ubuntu/foo/bar/spec.json"
+    },
+    "logger": {
+        "file": "ckb.log",
+        "filter": "info,chain=debug",
+        "color": true
+    },
+    "rpc": {
+        "listen_addr": "0.0.0.0:3030"
+    },
+    "miner": {
+        "type_hash": "0x8ce92152fd9613b80470837eb4bd46be12793662d5c22b489a63f475f2612b1d"
+    }
+}
 ```
 
 Notice the miner type hash here is the wallet address for the private key `e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3`.
 
-Also, create a file named `spec.yaml` in the same folder with the following content:
+Also, create a file named `spec.json` in the same folder with the following content:
 
 ```
-name: "ckb"
-genesis:
-    seal:
-        nonce: 0
-        proof: [0]
-    version: 0
-    parent_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
-    timestamp: 0
-    txs_commit: "0x0000000000000000000000000000000000000000000000000000000000000000"
-    txs_proposal: "0x0000000000000000000000000000000000000000000000000000000000000000"
-    difficulty: "0x20000"
-    cellbase_id: "0x0000000000000000000000000000000000000000000000000000000000000000"
-    uncles_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
-params:
-    initial_block_reward: 50000
-system_cells:
-    # When loading dev.yaml, we will modify the path here to simplify loading,
-    # but if you are copying this file elsewhere, you will need to provide full
-    # path or relative path to where ckb is executing.
-    - path: "/home/ubuntu/foo/bar/cells/verify"
-    - path: "/home/ubuntu/foo/bar/cells/always_success"
-    - path: "/home/ubuntu/foo/bar/cells/argv_source_entry"
-pow:
-    Dummy:
+{
+    "name": "ckb",
+    "genesis": {
+        "seal": {
+            "nonce": 0,
+            "proof": [0]
+        },
+        "version": 0,
+        "parent_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "timestamp": 0,
+        "txs_commit": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "txs_proposal": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "difficulty": "0x100",
+        "cellbase_id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "uncles_hash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "params": {
+        "initial_block_reward": 50000
+    },
+    "system_cells": [
+        {"path": "/home/ubuntu/foo/bar/cells/verify"},
+        {"path": "/home/ubuntu/foo/bar/cells/always_success"},
+        {"path": "/home/ubuntu/foo/bar/cells/argv_source_entry"}
+    ],
+    "pow": {
+        "Dummy": null
+    }
+}
 ```
 
 Remember if you are using a different directory than `/home/ubuntu/foo/bar`, you need to change the path in those 2 config files.
@@ -88,8 +91,8 @@ $ tree
 │   ├── always_success
 │   ├── argv_source_entry
 │   └── verify
-├── config.toml
-└── spec.yaml
+├── config.json
+└── spec.json
 
 1 directory, 5 files
 ```
@@ -142,6 +145,15 @@ In the Ruby shell, we can start playing with the SDK.
 ```
 
 Notice miner's balance keeps growing with every new block.
+
+If your miner balance is always 0, you might want to run the following command:
+
+```bash
+[8] pry(main)> miner.address
+=> "0x8ce92152fd9613b80470837eb4bd46be12793662d5c22b489a63f475f2612b1d"
+```
+
+And see if the miner address returned in your environment matches the value here, if not, it means that the mruby contract cell compiled in your environment is not exactly the same as the one we use here. In this case, please edit `type_hash` part in `/home/ubuntu/foo/bar/spec.json` with your value, and restart CKB, now miner should be able to pick up coins mined in newer blocks.
 
 ### User defined coin
 
