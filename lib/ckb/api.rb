@@ -6,7 +6,7 @@ require 'uri'
 require 'sha3'
 
 module Ckb
-  URL = "http://localhost:3030"
+  URL = "http://localhost:8114"
 
   class Api
     attr_reader :uri

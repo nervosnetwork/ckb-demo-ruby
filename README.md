@@ -14,22 +14,20 @@ Before we are using this SDK, we will need a customized CKB config for the follo
 * We will need to include mruby contract as a system cell. Notice it's also possible to create a new cell with mruby contract as the cell data, then referencing this cell later. Here for simplicity, we are sticking to a system cell.
 * Depending on computing resource you have, you can also set CKB to dummy mining mode to save CPU resources. In dummy mode, CKB will randomly sleep for certain amount of time acting as a "mining" time instead of doing expensive calculations.
 
-First you need a dummy folder to store all the configs, assuming we are using `/home/ubuntu/foo/bar`, we can do:
+First you need a dummy folder to store all the configs, assuming we are using `/home/ubuntu/node1`, we can do:
 
 ```bash
-$ mkdir -p /home/ubuntu/foo/bar
-$ cd /home/ubuntu/foo/bar
-$ mkdir cells
-$ cp <path to ckb>/spec/res/cells/* cells/
-$ cp <path to mruby-contracts>/build/argv_source_entry cells/
+$ cp -r <path to ckb>/nodes_template /home/ubuntu/node1
+$ cp <path to mruby-contracts>/build/argv_source_entry /home/ubuntu/node1/spec/cells/
 ```
 
-In this newly created folder, create a file named `config.json` with the following content:
+In this newly created folder, change the file `default.json` to the following content:
 
 ```
 {
+    "data_dir": "default",
     "ckb": {
-        "chain": "/home/ubuntu/foo/bar/spec.json"
+        "chain": "spec/dev.json"
     },
     "logger": {
         "file": "ckb.log",
@@ -37,17 +35,37 @@ In this newly created folder, create a file named `config.json` with the followi
         "color": true
     },
     "rpc": {
-        "listen_addr": "0.0.0.0:3030"
+        "listen_addr": "0.0.0.0:8114"
+    },
+    "network": {
+        "listen_addresses": ["/ip4/0.0.0.0/tcp/8115"],
+        "boot_nodes": [],
+        "reserved_nodes": [],
+        "max_peers": 8
+    },
+    "sync": {
+        "verification_level": "Full",
+        "orphan_block_limit": 1024
+    },
+    "pool": {
+        "max_pool_size": 10000,
+        "max_orphan_size": 10000,
+        "max_proposal_size": 10000,
+        "max_cache_size": 1000,
+        "max_pending_size": 10000
     },
     "miner": {
-        "type_hash": "0x8ce92152fd9613b80470837eb4bd46be12793662d5c22b489a63f475f2612b1d"
+        "max_tx": 1024,
+        "max_prop": 1024,
+        "new_transactions_threshold": 8,
+        "type_hash": "0xfd629e5e48e9c226158e3d8bd875a60bc8677ba7a4ee513aaa481837805eb4e1"
     }
 }
 ```
 
 Notice the miner type hash here is the wallet address for the private key `e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3`.
 
-Also, create a file named `spec.json` in the same folder with the following content:
+Also, change the file `spec/dev.json` to the following content:
 
 ```
 {
@@ -70,9 +88,9 @@ Also, create a file named `spec.json` in the same folder with the following cont
         "initial_block_reward": 50000
     },
     "system_cells": [
-        {"path": "/home/ubuntu/foo/bar/cells/verify"},
-        {"path": "/home/ubuntu/foo/bar/cells/always_success"},
-        {"path": "/home/ubuntu/foo/bar/cells/argv_source_entry"}
+        {"path": "cells/verify"},
+        {"path": "cells/always_success"},
+        {"path": "cells/argv_source_entry"}
     ],
     "pow": {
         "Dummy": null
@@ -80,27 +98,10 @@ Also, create a file named `spec.json` in the same folder with the following cont
 }
 ```
 
-Remember if you are using a different directory than `/home/ubuntu/foo/bar`, you need to change the path in those 2 config files.
-
-After all those changes, you should have the following directory structure:
-
-```bash
-$ tree
-.
-├── cells
-│   ├── always_success
-│   ├── argv_source_entry
-│   └── verify
-├── config.json
-└── spec.json
-
-1 directory, 5 files
-```
-
 And you can try launching CKB using configs here:
 
 ```bash
-./target/release/ckb run --data-dir=/home/ubuntu/foo/bar
+./target/release/ckb -c /home/ubuntu/node1/default.json run
 ```
 
 Here release version of ckb is used, tho debug version will also work.
@@ -108,7 +109,7 @@ Here release version of ckb is used, tho debug version will also work.
 You can verify CKB is running by issuing RPC calls:
 
 ```bash
-$ curl -d '{"id": 2, "jsonrpc": "2.0", "method":"get_tip_header","params": []}' -H 'content-type:application/json' 'http://localhost:3030'
+$ curl -d '{"id": 2, "jsonrpc": "2.0", "method":"get_tip_header","params": []}' -H 'content-type:application/json' 'http://localhost:8114'
 {"jsonrpc":"2.0","result":{"raw":{"cellbase_id":"0xd56eab3c0fc9647fa3451a132cd967a4d4f1fc768b8a515ddbd46fb91d5a7a1f","difficulty":"0x20000","number":2,"parent_hash":"0x2726a2938313c5f920b46d224c9ef21e3c9aa3098e340116819680b88f585484","timestamp":1542609053701,"txs_commit":"0xd56eab3c0fc9647fa3451a132cd967a4d4f1fc768b8a515ddbd46fb91d5a7a1f","txs_proposal":"0x0000000000000000000000000000000000000000000000000000000000000000","uncles_count":0,"uncles_hash":"0x0000000000000000000000000000000000000000000000000000000000000000","version":0},"seal":{"nonce":5039870112347525463,"proof":[]}},"id":2}
 ```
 
