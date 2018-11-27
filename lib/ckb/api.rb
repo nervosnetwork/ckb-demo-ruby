@@ -76,52 +76,7 @@ module Ckb
     end
 
     def send_transaction(transaction)
-      # In Ruby, bytes are represented using String, but Rust uses Vec<u8>
-      # to represent bytes, which needs raw array in JSON part, hence we
-      # have to do type conversions here.
-      transaction[:inputs].each do |input|
-        input[:unlock][:args] = input[:unlock][:args].map do |arg|
-          if arg.is_a? String
-            arg.bytes.to_a
-          else
-            arg
-          end
-        end
-        input[:unlock][:signed_args] = input[:unlock][:signed_args].map do |arg|
-          if arg.is_a? String
-            arg.bytes.to_a
-          else
-            arg
-          end
-        end
-        if input[:binary] && input[:binary].is_a?(String)
-          input[:binary] = input[:binary].bytes.to_a
-        end
-      end
-      transaction[:outputs].each do |output|
-        if output[:data].is_a? String
-          output[:data] = output[:data].bytes.to_a
-        end
-        if output[:contract]
-          output[:contract][:args] = output[:contract][:args].map do |arg|
-            if arg.is_a? String
-              arg.bytes.to_a
-            else
-              arg
-            end
-          end
-          output[:contract][:signed_args] = output[:contract][:signed_args].map do |arg|
-            if arg.is_a? String
-              arg.bytes.to_a
-            else
-              arg
-            end
-          end
-          if output[:contract][:binary] && output[:contract][:binary].is_a?(String)
-            output[:contract][:binary] = output[:contract][:binary].bytes.to_a
-          end
-        end
-      end
+      transaction = Ckb::Utils.normalize_tx_for_json(transaction)
       rpc_request("send_transaction", params: [transaction])[:result]
     end
   end

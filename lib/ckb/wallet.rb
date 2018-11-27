@@ -42,7 +42,7 @@ module Ckb
       get_unspent_cells.map { |c| c[:capacity] }.reduce(0, &:+)
     end
 
-    def send_capacity(target_address, capacity)
+    def generate_tx(target_address, capacity)
       i = gather_inputs(capacity, MIN_CELL_CAPACITY)
       input_capacities = i.capacities
 
@@ -60,12 +60,16 @@ module Ckb
           lock: self.address
         }
       end
-      tx = {
+      {
         version: 0,
         deps: [api.mruby_script_outpoint],
         inputs: sign_inputs(i.inputs, outputs),
         outputs: outputs
       }
+    end
+
+    def send_capacity(target_address, capacity)
+      tx = generate_tx(target_address, capacity)
       api.send_transaction(tx)
     end
 
