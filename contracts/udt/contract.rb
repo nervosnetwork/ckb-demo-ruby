@@ -1,8 +1,8 @@
 # This contract needs 2 signed arguments:
-# 1. coin name, this is just a placeholder to distinguish between coins,
-# it will not be used in the actual contract. The pair of coin name and
-# pubkey uniquely identifies a coin.
-# 2. pubkey, used to perform supermode operations such as issuing new coins
+# 1. token name, this is just a placeholder to distinguish between tokens,
+# it will not be used in the actual contract. The pair of token name and
+# pubkey uniquely identifies a token.
+# 2. pubkey, used to perform supermode operations such as issuing new tokens
 # This contract also needs 1 or 2 unsigned arguments:
 # 3. Current contract type hash, will be verified in unlock contract
 # 4. (optional) supermode signature, when present and verified, the transaction

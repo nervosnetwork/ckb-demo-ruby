@@ -154,42 +154,42 @@ If your miner balance is always 0, you might want to run the following command:
 => "0x8ce92152fd9613b80470837eb4bd46be12793662d5c22b489a63f475f2612b1d"
 ```
 
-And see if the miner address returned in your environment matches the value here, if not, it means that the mruby contract cell compiled in your environment is not exactly the same as the one we use here. In this case, please edit `type_hash` part in `/home/ubuntu/foo/bar/spec.json` with your value, and restart CKB, now miner should be able to pick up coins mined in newer blocks.
+And see if the miner address returned in your environment matches the value here, if not, it means that the mruby contract cell compiled in your environment is not exactly the same as the one we use here. In this case, please edit `type_hash` part in `/home/ubuntu/foo/bar/spec.json` with your value, and restart CKB, now miner should be able to pick up tokens mined in newer blocks.
 
-### User defined coin
+### User defined token
 
-We can also create user defined coin that's separate from CKB. A new user defined coin is made of 2 parts:
+We can also create user defined token that's separate from CKB. A new user defined token is made of 2 parts:
 
-* A coin name
-* Coin's admin pubkey, only coin's admin can issue new coins. Other user can only transfer already created coins to others.
+* A token name
+* Token's admin pubkey, only token's admin can issue new tokens. Other user can only transfer already created tokens to others.
 
-Ruby SDK here provides an easy way to create a coin from an existing wallet
+Ruby SDK here provides an easy way to create a token from an existing wallet
 
 ```bash
 [1] pry(main)> admin = Ckb::Wallet.from_hex(Ckb::Api.new, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(Ckb::Api.new, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> coin_info = admin.created_coin_info("Coin 1")
-=> #<Ckb::CoinInfo:0x0000561fee8cf550 @name="Coin 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
-[4] pry(main)> # coin info represents the meta data for a coin
-[5] pry(main)> # we can assemble a wallet for user defined coin with coin info structure
-[6] pry(main)> admin_coin1 = admin.udt_wallet(coin_info)
-[7] pry(main)> alice_coin1 = alice.udt_wallet(coin_info)
+[3] pry(main)> token_info = admin.created_token_info("Token 1")
+=> #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
+[4] pry(main)> # token info represents the meta data for a token
+[5] pry(main)> # we can assemble a wallet for user defined token with token info structure
+[6] pry(main)> admin_token1 = admin.udt_wallet(token_info)
+[7] pry(main)> alice_token1 = alice.udt_wallet(token_info)
 ```
 
-Now we can create this coin from a user with CKB capacities(since the cell used to hold the coins will take some capacity):
+Now we can create this token from a user with CKB capacities(since the cell used to hold the tokens will take some capacity):
 
 ```bash
 [9] pry(main)> admin.get_balance
 => 3737655
-[10] pry(main)> # here we are creating 10000000 coins for "Coin 1", we put those coins in a cell with 10000 CKB capacity
-[11] pry(main)> admin.create_udt_coin(10000, "Coin 1", 10000000)
-[12] pry(main)> admin_coin1.get_balance
+[10] pry(main)> # here we are creating 10000000 tokens for "Token 1", we put those tokens in a cell with 10000 CKB capacity
+[11] pry(main)> admin.create_udt_token(10000, "Token 1", 10000000)
+[12] pry(main)> admin_token1.get_balance
 => 10000000
-[13] pry(main)> alice_coin1.get_balance
+[13] pry(main)> alice_token1.get_balance
 => 0
 ```
 
-Transferring coins will be slightly more complicated here: when user 1 transfers some coins to user 2, it usually involves splitting using a cell of user 1 with some coins as input, and 2 new cells as output: cell A transfering some coins to user 2, and cell B transferring the changes back to user 1. There's a question now: who will pay for cell capacity for cell A?
+Transferring tokens will be slightly more complicated here: when user 1 transfers some tokens to user 2, it usually involves splitting using a cell of user 1 with some tokens as input, and 2 new cells as output: cell A transfering some tokens to user 2, and cell B transferring the changes back to user 1. There's a question now: who will pay for cell capacity for cell A?
 
 In this Ruby SDK, we implement this using a 3-step solution:
 
@@ -202,13 +202,13 @@ Notice CKB is flexible to implement many other types of transaction for this pro
 The following code fulfills this step:
 
 ```bash
-[15] pry(main)> output = admin_coin1.generate_output(alice_coin1.address, 1234, 3000)
+[15] pry(main)> output = admin_token1.generate_output(alice_token1.address, 1234, 3000)
 [16] pry(main)> # notice signing inputs require CKB capacity, so we are using
-[16] pry(main)> # alice's original wallet, not the coin wallet
+[16] pry(main)> # alice's original wallet, not the token wallet
 [17] pry(main)> signed_data = alice.sign_capacity_for_udt_cell(3000, output)
-[18] pry(main)> admin_coin1.send_amount(1234, signed_data[:inputs], signed_data[:outputs])
-[19] pry(main)> admin_coin1.get_balance
+[18] pry(main)> admin_token1.send_amount(1234, signed_data[:inputs], signed_data[:outputs])
+[19] pry(main)> admin_token1.get_balance
 => 9998766
-[20] pry(main)> alice_coin1.get_balance
+[20] pry(main)> alice_token1.get_balance
 => 1234
 ```

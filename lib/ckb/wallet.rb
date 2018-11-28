@@ -77,15 +77,15 @@ module Ckb
       api.get_transaction(hash_hex)
     end
 
-    def sign_capacity_for_udt_cell(capacity_to_pay, coin_output, coin_output_index: 0, input_start_offset: 0, output_start_offset: 1)
-      if capacity_to_pay < coin_output[:capacity]
+    def sign_capacity_for_udt_cell(capacity_to_pay, token_output, token_output_index: 0, input_start_offset: 0, output_start_offset: 1)
+      if capacity_to_pay < token_output[:capacity]
         raise "Not enough capacity paid!"
       end
 
       i = gather_inputs(capacity_to_pay, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
-      outputs = [coin_output]
+      outputs = [token_output]
       if input_capacities > capacity_to_pay
         outputs << {
           capacity: input_capacities - capacity_to_pay,
@@ -95,7 +95,7 @@ module Ckb
       end
 
       signed_inputs = i.inputs.size.times.map { |i| i + input_start_offset}
-      signed_outputs = [coin_output_index] + (outputs.size - 1).times.map { |i| i + output_start_offset}
+      signed_outputs = [token_output_index] + (outputs.size - 1).times.map { |i| i + output_start_offset}
       hash_indices = "#{signed_inputs.join(",")}|#{signed_outputs.join(",")}|"
       {
         version: 0,
@@ -105,19 +105,19 @@ module Ckb
       }
     end
 
-    def created_coin_info(coin_name)
-      CoinInfo.new(coin_name, Ckb::Utils.bin_to_hex(pubkey_bin))
+    def created_token_info(token_name)
+      TokenInfo.new(token_name, Ckb::Utils.bin_to_hex(pubkey_bin))
     end
 
-    def create_udt_coin(capacity, coin_name, coins)
-      coin_info = created_coin_info(coin_name)
+    def create_udt_token(capacity, token_name, tokens)
+      token_info = created_token_info(token_name)
 
       i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
-      data = [coins].pack("Q<")
+      data = [tokens].pack("Q<")
       s = SHA3::Digest::SHA256.new
-      s.update(Ckb::Utils.hex_to_bin(udt_wallet(coin_info).mruby_contract_type_hash))
+      s.update(Ckb::Utils.hex_to_bin(udt_wallet(token_info).mruby_contract_type_hash))
       s.update(data)
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
@@ -127,18 +127,18 @@ module Ckb
         {
           capacity: capacity,
           data: data,
-          lock: udt_wallet(coin_info).address,
+          lock: udt_wallet(token_info).address,
           contract: {
             version: 0,
             args: [
-              udt_wallet(coin_info).mruby_contract_type_hash,
+              udt_wallet(token_info).mruby_contract_type_hash,
               signature_hex
             ],
             reference: api.mruby_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
-              coin_info.name,
-              coin_info.pubkey
+              token_info.name,
+              token_info.pubkey
             ]
           }
         }
@@ -157,11 +157,11 @@ module Ckb
         outputs: outputs
       }
       hash = api.send_transaction(tx)
-      OpenStruct.new(tx_hash: hash, coin_info: coin_info)
+      OpenStruct.new(tx_hash: hash, token_info: token_info)
     end
 
-    def udt_wallet(coin_info)
-      Ckb::UdtWallet.new(api, privkey, coin_info)
+    def udt_wallet(token_info)
+      Ckb::UdtWallet.new(api, privkey, token_info)
     end
 
     private

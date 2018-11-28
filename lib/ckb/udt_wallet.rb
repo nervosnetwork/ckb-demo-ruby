@@ -8,7 +8,7 @@ module Ckb
   UNLOCK_SCRIPT = File.read(File.expand_path("../../../contracts/udt/unlock.rb", __FILE__))
   CONTRACT_SCRIPT = File.read(File.expand_path("../../../contracts/udt/contract.rb", __FILE__))
 
-  class CoinInfo
+  class TokenInfo
     attr_reader :name
     attr_reader :pubkey
 
@@ -21,20 +21,20 @@ module Ckb
   class UdtWallet
     attr_reader :api
     attr_reader :privkey
-    attr_reader :coin_info
+    attr_reader :token_info
 
-    def initialize(api, privkey, coin_info)
+    def initialize(api, privkey, token_info)
       unless privkey.instance_of?(String) && privkey.size == 32
         raise ArgumentError, "invalid privkey!"
       end
 
-      unless coin_info.instance_of?(CoinInfo)
-        raise ArgumentError, "invalid coin info!"
+      unless token_info.instance_of?(TokenInfo)
+        raise ArgumentError, "invalid token info!"
       end
 
       @api = api
       @privkey = privkey
-      @coin_info = coin_info
+      @token_info = token_info
     end
 
     def wallet
@@ -81,8 +81,8 @@ module Ckb
           reference: api.mruby_cell_hash,
           signed_args: [
             Ckb::CONTRACT_SCRIPT,
-            coin_info.name,
-            coin_info.pubkey
+            token_info.name,
+            token_info.pubkey
           ]
         }
       }
@@ -109,8 +109,8 @@ module Ckb
             reference: api.mruby_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
-              coin_info.name,
-              coin_info.pubkey
+              token_info.name,
+              token_info.pubkey
             ]
           }
         }
@@ -141,7 +141,7 @@ module Ckb
         reference: api.mruby_cell_hash,
         signed_args: [
           UNLOCK_SCRIPT,
-          coin_info.name,
+          token_info.name,
           Ckb::Utils.bin_to_hex(pubkey_bin)
         ]
       }
@@ -153,8 +153,8 @@ module Ckb
         reference: api.mruby_cell_hash,
         signed_args: [
           CONTRACT_SCRIPT,
-          coin_info.name,
-          coin_info.pubkey
+          token_info.name,
+          token_info.pubkey
         ]
       }
     end

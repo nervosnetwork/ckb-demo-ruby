@@ -1,5 +1,5 @@
 # This contract needs 1 signed arguments:
-# 1. pubkey, used to identify coin owner
+# 1. pubkey, used to identify token owner
 # This contracts also accepts two unsigned argument:
 # 2. signature, signature used to present ownership
 # 3. hash indices, see below for explanation

@@ -1,8 +1,8 @@
 # This contract needs 2 signed arguments:
-# 1. coin name, this is here so we can have different lock hash for
-# different coin for ease of querying. In the actual contract this is
+# 1. token name, this is here so we can have different lock hash for
+# different token for ease of querying. In the actual contract this is
 # not used.
-# 2. pubkey, used to identify coin owner
+# 2. pubkey, used to identify token owner
 # This contracts also accepts two unsigned argument:
 # 3. signature, signature used to present ownership
 # 4. hash indices, see below for explanation
