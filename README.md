@@ -6,6 +6,8 @@ First you will need to have [ckb](https://github.com/nervosnetwork/ckb) compiled
 
 You will also need [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts). Follow the steps in the README to build it, you will need the generated mruby contract file at `build/argv_source_entry`.
 
+If you don't want to build mruby-contracts yourself, we have a prebuilt binary at [here](https://github.com/nervosnetwork/binary/raw/master/contracts/mruby/argv_source_entry).
+
 ## Configure CKB
 
 Before we are using this SDK, we will need a customized CKB config for the following purposes:
