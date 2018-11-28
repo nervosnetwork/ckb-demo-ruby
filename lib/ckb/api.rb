@@ -76,7 +76,7 @@ module Ckb
     end
 
     def send_transaction(transaction)
-      transaction = Ckb::Utils.normalize_tx_for_json(transaction)
+      transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
       rpc_request("send_transaction", params: [transaction])[:result]
     end
   end

@@ -42,8 +42,7 @@ module Ckb
     # In Ruby, bytes are represented using String, but Rust uses Vec<u8>
     # to represent bytes, which needs raw array in JSON part, hence we
     # have to do type conversions here.
-    def self.normalize_tx_for_json(transaction)
-      transaction = JSON.parse(transaction.to_json, symbolize_names: true)
+    def self.normalize_tx_for_json!(transaction)
       transaction[:inputs].each do |input|
         input[:unlock][:args] = input[:unlock][:args].map do |arg|
           if arg.is_a? String
