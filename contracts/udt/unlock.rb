@@ -40,6 +40,10 @@ end
   output = tx["outputs"][output_index]
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
+  # TODO: to ensure security we should also verify that contract args contain
+  # type hash for the contract script. Otherwise we cannot be sure that this
+  # contract won't be exploited. We will add this later when we figure out the
+  # best way to keep args.
   if hash = CKB.load_script_hash(output_index, CKB::OUTPUT, CKB::CONTRACT)
     sha3.update(hash)
   end
