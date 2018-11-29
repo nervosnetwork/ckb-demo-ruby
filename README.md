@@ -191,26 +191,21 @@ Now we can create this token from a user with CKB capacities(since the cell used
 => 0
 ```
 
-Transferring tokens will be slightly more complicated here: when user 1 transfers some tokens to user 2, it usually involves splitting using a cell of user 1 with some tokens as input, and 2 new cells as output: cell A transfering some tokens to user 2, and cell B transferring the changes back to user 1. There's a question now: who will pay for cell capacity for cell A?
+Now that the token is created, we can implement a token transfer process between CKB capacities and user defined tokens. Specifically, we are demostrating the following process:
 
-In this Ruby SDK, we implement this using a 3-step solution:
-
-* User 1 or 2 creates an output template for cell A
-* User 2 signs signatures with his/her own inputs providing capacities for cell A, to ensure security, user 2 can leverage SIGHASH to say that only when the final transaction has cell A, will it be able to unlock user 2's provide inputs.
-* User 1 combines inputs and signatures from user 2 with inputs of his/her own to create the final transaction. The final transaction will leverage capacity created from user 2 to store tokens transferred from user 1.
+* Alice signs signatures providing a certain number of CKB capacities in exchange of some user defined tokens. Notice CKB contracts here can ensure that no one can spend alice's signed capacities without providing tokens for Alice
+* Then admin provides user defined tokens for Alice in exchange for Alice's capacities.
 
 Notice CKB is flexible to implement many other types of transaction for this problem, here we are simply listing one solution here. You are not limited to only this solution.
 
 The following code fulfills this step:
 
 ```bash
-[15] pry(main)> output = alice_token1.generate_output(alice_token1.address, 1234, 3000)
-[16] pry(main)> # notice signing inputs require CKB capacity, so we are using
-[16] pry(main)> # alice's original wallet, not the token wallet
-[17] pry(main)> signed_data = alice.sign_capacity_for_udt_cell(3000, output)
-[18] pry(main)> admin_token1.send_amount(1234, signed_data[:inputs], signed_data[:outputs])
+[15] pry(main)> # Alice is paying 10999 CKB capacities for 12345 token 1, alice will also spare 3000 CKB capacities to hold the returned token 1.
+[15] pry(main)> partial_tx = alice_token1.generate_partial_tx_for_udt_cell(12345, 3000, 10999)
+[18] pry(main)> admin_token1.send_amount(12345, partial_tx)
 [19] pry(main)> admin_token1.get_balance
-=> 9998766
+=> 9987655
 [20] pry(main)> alice_token1.get_balance
-=> 1234
+=> 12345
 ```

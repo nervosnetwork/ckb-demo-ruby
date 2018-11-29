@@ -95,7 +95,17 @@ module Ckb
       output
     end
 
-    def send_amount(amount, inputs, outputs)
+    # Generate a partial tx which provides CKB coins in exchange for UDT tokens.
+    # UDT sender should use +send_amount+ to fill in the other part
+    def generate_partial_tx_for_udt_cell(token_amount, udt_cell_capacity, exchange_capacity)
+      output = generate_output(address, token_amount, udt_cell_capacity)
+      wallet.sign_capacity_for_udt_cell(udt_cell_capacity + exchange_capacity, output)
+    end
+
+    def send_amount(amount, partial_tx)
+      inputs = partial_tx[:inputs]
+      outputs = partial_tx[:outputs]
+
       i = gather_inputs(amount)
 
       input_capacities = inputs.map do |input|
