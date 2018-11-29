@@ -98,6 +98,15 @@ module Ckb
     def send_amount(amount, inputs, outputs)
       i = gather_inputs(amount)
 
+      input_capacities = inputs.map do |input|
+        api.get_current_cell(input[:previous_output])[:cell][:capacity]
+      end.reduce(&:+)
+      output_capacities = outputs.map do |output|
+        output[:capacity]
+      end.reduce(&:+)
+
+      # If there's more input capacities than output capacities, collect them
+      spare_cell_capacity = input_capacities - output_capacities
       if i.amounts > amount
         outputs << {
           capacity: i.capacities,
@@ -114,9 +123,16 @@ module Ckb
             ]
           }
         }
+        if spare_cell_capacity > MIN_CELL_CAPACITY
+          outputs << {
+            capacity: spare_cell_capacity,
+            data: [],
+            lock: wallet.address
+          }
+        end
       else
         outputs << {
-          capacity: i.capacities,
+          capacity: i.capacities + spare_cell_capacity,
           data: [],
           lock: wallet.address
         }

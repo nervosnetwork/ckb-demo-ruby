@@ -195,7 +195,7 @@ Transferring tokens will be slightly more complicated here: when user 1 transfer
 
 In this Ruby SDK, we implement this using a 3-step solution:
 
-* User 1 creates an output template for cell A
+* User 1 or 2 creates an output template for cell A
 * User 2 signs signatures with his/her own inputs providing capacities for cell A, to ensure security, user 2 can leverage SIGHASH to say that only when the final transaction has cell A, will it be able to unlock user 2's provide inputs.
 * User 1 combines inputs and signatures from user 2 with inputs of his/her own to create the final transaction. The final transaction will leverage capacity created from user 2 to store tokens transferred from user 1.
 
@@ -204,7 +204,7 @@ Notice CKB is flexible to implement many other types of transaction for this pro
 The following code fulfills this step:
 
 ```bash
-[15] pry(main)> output = admin_token1.generate_output(alice_token1.address, 1234, 3000)
+[15] pry(main)> output = alice_token1.generate_output(alice_token1.address, 1234, 3000)
 [16] pry(main)> # notice signing inputs require CKB capacity, so we are using
 [16] pry(main)> # alice's original wallet, not the token wallet
 [17] pry(main)> signed_data = alice.sign_capacity_for_udt_cell(3000, output)

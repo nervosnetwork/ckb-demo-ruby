@@ -75,6 +75,15 @@ module Ckb
       rpc_request("get_transaction", params: [tx_hash_hex])[:result]
     end
 
+    def get_current_cell(outpoint)
+      # This way we can detect type errors early instead of weird RPC errors
+      normalized_outpoint = {
+        hash: outpoint[:hash],
+        index: outpoint[:index]
+      }
+      rpc_request("get_current_cell", params: [normalized_outpoint])[:result]
+    end
+
     def send_transaction(transaction)
       transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
       rpc_request("send_transaction", params: [transaction])[:result]
