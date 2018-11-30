@@ -46,7 +46,11 @@ module Ckb
     end
 
     def mruby_cell_hash
-      hash_bin = SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][2][:data].pack("c*"))
+      system_cells = genesis_block[:transactions][0][:transaction][:outputs]
+      if system_cells.length < 3
+        raise "Cannot find mruby contract cell, please check your configuration"
+      end
+      hash_bin = SHA3::Digest::SHA256.digest(system_cells[2][:data].pack("c*"))
       Ckb::Utils.bin_to_prefix_hex(hash_bin)
     end
 
