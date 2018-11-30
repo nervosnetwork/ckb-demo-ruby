@@ -60,7 +60,7 @@ In this newly created folder, change the file `default.json` to the following co
         "max_tx": 1024,
         "max_prop": 1024,
         "new_transactions_threshold": 8,
-        "type_hash": "0xaeeb7a04b3766acbf86b51b03aa97f4c7a409a1211ac259dc58bc7ad89805561"
+        "type_hash": "0x25f62b34f984bdbee3bdbf6f90895854d56150cd413baa8d45b6ead092dc5231"
     }
 }
 ```
