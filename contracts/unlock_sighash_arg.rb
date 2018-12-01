@@ -25,6 +25,8 @@ end
 # hash index 1 and 2 of inputs, index 3 and 4 of outputs, and index 5 of
 # deps. All indices here are 0-based.
 hash_indices = ARGV[2].split("|").map { |s| s.split(",") }
+
+# TODO: check current input is included in input indices
 (hash_indices[0] || []).each do |input_index|
   input_index = input_index.to_i
   input = tx["inputs"][input_index]
