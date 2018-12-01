@@ -152,7 +152,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [],
         inputs: sign_inputs(i.inputs, outputs),
         outputs: outputs
       }
