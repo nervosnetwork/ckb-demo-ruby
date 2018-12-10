@@ -102,10 +102,11 @@ Also, change the file `spec/dev.json` to the following content:
 }
 ```
 
-And you can try launching CKB using configs here:
+And you can try launching CKB node and miner using configs here:
 
 ```bash
 ./target/release/ckb -c /home/ubuntu/node1/default.json run
+./target/release/ckb -c /home/ubuntu/node1/default.json miner
 ```
 
 Here release version of ckb is used, tho debug version will also work.
