@@ -109,7 +109,7 @@ And you can try launching CKB node and miner using configs here:
 ./target/release/ckb -c /home/ubuntu/node1/default.json miner
 ```
 
-Here release version of ckb is used, tho debug version will also work.
+Here release version of ckb is used, the debug version will also work.
 
 You can verify CKB is running by issuing RPC calls:
 
