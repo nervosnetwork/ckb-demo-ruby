@@ -35,14 +35,14 @@ if ARGV.length >= 4
   sha3 = Sha3.new
   sha3.update(contract_type_hash)
   tx["inputs"].each_with_index do |input, i|
-    if CKB.load_script_hash(i, CKB::INPUT, CKB::CONTRACT) == contract_type_hash
-      sha3.update(CKB::Cell.new(CKB::INPUT, i).read(0, 8))
+    if CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::CONTRACT) == contract_type_hash
+      sha3.update(CKB::CellField.new(CKB::Source::INPUT, i, CKB::CellField::DATA).read(0, 8))
     end
   end
   tx["outputs"].each_with_index do |output, i|
-    hash = CKB.load_script_hash(i, CKB::OUTPUT, CKB::CONTRACT)
-    if CKB.load_script_hash(i, CKB::OUTPUT, CKB::CONTRACT) == contract_type_hash
-      sha3.update(CKB::Cell.new(CKB::OUTPUT, i).read(0, 8))
+    hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+    if CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT) == contract_type_hash
+      sha3.update(CKB::CellField.new(CKB::Source::OUTPUT, i, CKB::CellField::DATA).read(0, 8))
     end
   end
 
@@ -55,16 +55,16 @@ if ARGV.length >= 4
 end
 
 input_sum = tx["inputs"].size.times.map do |i|
-  if CKB.load_script_hash(i, CKB::INPUT, CKB::CONTRACT) == contract_type_hash
-    CKB::Cell.new(CKB::INPUT, i).read(0, 8).unpack("Q<")[0]
+  if CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::CONTRACT) == contract_type_hash
+    CKB::CellField.new(CKB::Source::INPUT, i, CKB::CellField::DATA).read(0, 8).unpack("Q<")[0]
   else
     0
   end
 end.reduce(&:+)
 
 output_sum = tx["outputs"].size.times.map do |i|
-  if CKB.load_script_hash(i, CKB::OUTPUT, CKB::CONTRACT) == contract_type_hash
-    CKB::Cell.new(CKB::OUTPUT, i).read(0, 8).unpack("Q<")[0]
+  if CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT) == contract_type_hash
+    CKB::CellField.new(CKB::Source::OUTPUT, i, CKB::CellField::DATA).read(0, 8).unpack("Q<")[0]
   else
     0
   end
