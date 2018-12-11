@@ -32,14 +32,14 @@ hash_indices = ARGV[2].split("|").map { |s| s.split(",") }
   input = tx["inputs"][input_index]
   sha3.update(input["hash"])
   sha3.update(input["index"].to_s)
-  sha3.update(CKB.load_script_hash(input_index, CKB::INPUT, CKB::LOCK))
+  sha3.update(CKB.load_script_hash(input_index, CKB::Source::INPUT, CKB::Category::LOCK))
 end
 (hash_indices[1] || []).each do |output_index|
   output_index = output_index.to_i
   output = tx["outputs"][output_index]
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
-  if hash = CKB.load_script_hash(output_index, CKB::OUTPUT, CKB::CONTRACT)
+  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
     sha3.update(hash)
   end
 end

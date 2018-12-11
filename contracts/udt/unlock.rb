@@ -33,7 +33,7 @@ hash_indices = ARGV[3].split("|").map { |s| s.split(",") }
   input = tx["inputs"][input_index]
   sha3.update(input["hash"])
   sha3.update(input["index"].to_s)
-  sha3.update(CKB.load_script_hash(input_index, CKB::INPUT, CKB::LOCK))
+  sha3.update(CKB.load_script_hash(input_index, CKB::Source::INPUT, CKB::Category::LOCK))
 end
 (hash_indices[1] || []).each do |output_index|
   output_index = output_index.to_i
@@ -44,7 +44,7 @@ end
   # type hash for the contract script. Otherwise we cannot be sure that this
   # contract won't be exploited. We will add this later when we figure out the
   # best way to keep args.
-  if hash = CKB.load_script_hash(output_index, CKB::OUTPUT, CKB::CONTRACT)
+  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
     sha3.update(hash)
   end
 end
