@@ -59,7 +59,7 @@ In this newly created folder, change the file `default.json` to the following co
     "miner": {
         "new_transactions_threshold": 8,
         "type_hash": "0xaeeb7a04b3766acbf86b51b03aa97f4c7a409a1211ac259dc58bc7ad89805561",
-        "rpc_url": "http://127.0.0.01:8114/",
+        "rpc_url": "http://127.0.0.1:8114/",
         "poll_interval": 5,
         "max_transactions": 10000,
         "max_proposals": 10000
