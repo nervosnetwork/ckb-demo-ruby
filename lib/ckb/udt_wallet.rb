@@ -75,9 +75,7 @@ module Ckb
         lock: udt_address,
         contract: {
           version: 0,
-          args: [
-            mruby_contract_type_hash
-          ],
+          args: [],
           reference: api.mruby_cell_hash,
           signed_args: [
             Ckb::CONTRACT_SCRIPT,
@@ -103,8 +101,12 @@ module Ckb
     end
 
     def send_amount(amount, partial_tx)
-      inputs = partial_tx[:inputs]
       outputs = partial_tx[:outputs]
+      inputs = partial_tx[:inputs].map do |input|
+        args = input[:unlock][:args] + [outputs.length.times.to_a.join(",")]
+        unlock = input[:unlock].merge(args: args)
+        input.merge(unlock: unlock)
+      end
 
       i = gather_inputs(amount)
 
@@ -124,7 +126,7 @@ module Ckb
           lock: address,
           contract: {
             version: 0,
-            args: [mruby_contract_type_hash],
+            args: [],
             reference: api.mruby_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
@@ -151,11 +153,11 @@ module Ckb
       start = inputs.size
       length = i.inputs.size
 
+      self_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
         deps: [api.mruby_script_outpoint],
-        inputs: sign_inputs(inputs.concat(i.inputs), outputs,
-                            start: start, length: length),
+        inputs: inputs + self_inputs,
         outputs: outputs
       }
       api.send_transaction(tx)
@@ -202,7 +204,7 @@ module Ckb
       capacity = 8 + output[:data].size + Ckb::Utils.hex_to_bin(output[:lock]).size
       if contract = output[:contract]
         capacity += 1
-        capacity += (contract[:args] || []).map { |arg| arg.size }.reduce(&:+)
+        capacity += (contract[:args] || []).map { |arg| arg.size }.reduce(0, &:+)
         if contract[:reference]
           capacity += Ckb::Utils.hex_to_bin(contract[:reference]).size
         end
@@ -212,35 +214,6 @@ module Ckb
         capacity += (contract[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
       end
       capacity
-    end
-
-    def sign_inputs(inputs, outputs, start: 0, length: nil)
-      length ||= inputs.size
-      hash_indices = "#{inputs.size.times.to_a.join(",")}|#{outputs.size.times.to_a.join(",")}|"
-      s = SHA3::Digest::SHA256.new
-      s.update(hash_indices)
-      inputs.each do |input|
-        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
-        s.update(input[:previous_output][:index].to_s)
-        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
-      end
-      outputs.each do |output|
-        s.update(output[:capacity].to_s)
-        s.update(Ckb::Utils.hex_to_bin(output[:lock]))
-        if output[:contract]
-          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
-        end
-      end
-      key = Secp256k1::PrivateKey.new(privkey: privkey)
-      signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
-      signature_hex = Ckb::Utils.bin_to_hex(signature)
-
-      for i in start...start+length do
-        input = inputs[i]
-        input[:unlock][:args] = [signature_hex, hash_indices]
-      end
-
-      inputs
     end
 
     def gather_inputs(amount)

@@ -6,7 +6,7 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
-  VERIFY_SCRIPT = File.read(File.expand_path("../../../contracts/unlock_sighash_arg.rb", __FILE__))
+  VERIFY_SCRIPT = File.read(File.expand_path("../../../contracts/bitcoin_unlock.rb", __FILE__))
 
   class Wallet
     attr_reader :api
@@ -63,7 +63,7 @@ module Ckb
       {
         version: 0,
         deps: [api.mruby_script_outpoint],
-        inputs: sign_inputs(i.inputs, outputs),
+        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
     end
@@ -77,7 +77,7 @@ module Ckb
       api.get_transaction(hash_hex)
     end
 
-    def sign_capacity_for_udt_cell(capacity_to_pay, token_output, token_output_index: 0, input_start_offset: 0, output_start_offset: 1)
+    def sign_capacity_for_udt_cell(capacity_to_pay, token_output)
       if capacity_to_pay < token_output[:capacity]
         raise "Not enough capacity paid!"
       end
@@ -94,13 +94,10 @@ module Ckb
         }
       end
 
-      signed_inputs = i.inputs.size.times.map { |i| i + input_start_offset}
-      signed_outputs = [token_output_index] + (outputs.size - 1).times.map { |i| i + output_start_offset}
-      hash_indices = "#{signed_inputs.join(",")}|#{signed_outputs.join(",")}|"
       {
         version: 0,
         deps: [api.mruby_script_outpoint],
-        inputs: sign_inputs(i.inputs, outputs, hash_indices: hash_indices),
+        inputs: Ckb::Utils.sign_sighash_multiple_anyonecanpay_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
     end
@@ -131,7 +128,6 @@ module Ckb
           contract: {
             version: 0,
             args: [
-              udt_wallet(token_info).mruby_contract_type_hash,
               signature_hex
             ],
             reference: api.mruby_cell_hash,
@@ -153,7 +149,7 @@ module Ckb
       tx = {
         version: 0,
         deps: [api.mruby_script_outpoint],
-        inputs: sign_inputs(i.inputs, outputs),
+        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
       hash = api.send_transaction(tx)
@@ -165,34 +161,6 @@ module Ckb
     end
 
     private
-    def sign_inputs(inputs, outputs, hash_indices: nil)
-      hash_indices ||= "#{inputs.size.times.to_a.join(",")}|#{outputs.size.times.to_a.join(",")}|"
-      # By default we sign with sighash all mode, so we only need to
-      # calculate signing message and signature once here.
-      s = SHA3::Digest::SHA256.new
-      s.update(hash_indices)
-      inputs.each do |input|
-        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
-        s.update(input[:previous_output][:index].to_s)
-        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
-      end
-      outputs.each do |output|
-        s.update(output[:capacity].to_s)
-        s.update(Ckb::Utils.hex_to_bin(output[:lock]))
-        if output[:contract]
-          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
-        end
-      end
-      key = Secp256k1::PrivateKey.new(privkey: privkey)
-      signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
-      signature_hex = Ckb::Utils.bin_to_hex(signature)
-
-      inputs.map do |input|
-        unlock = input[:unlock].merge(args: [signature_hex, hash_indices])
-        input.merge(unlock: unlock)
-      end
-    end
-
     def gather_inputs(capacity, min_capacity)
       if capacity < min_capacity
         raise "capacity cannot be less than #{min_capacity}"

@@ -1,17 +1,14 @@
-# This contract needs 2 signed arguments:
-# 0. token name, this is here so we can have different lock hash for
-# different token for ease of querying. In the actual contract this is
-# not used.
-# 1. pubkey, used to identify token owner
+# This contract needs 1 signed arguments:
+# 0. pubkey, used to identify token owner
 # This contracts also accepts 2 required unsigned arguments and 1
 # optional unsigned argument:
-# 2. signature, signature used to present ownership
-# 3. type, SIGHASH type
-# 4. output(s), this is only used for SIGHASH_SINGLE and SIGHASH_MULTIPLE types,
+# 1. signature, signature used to present ownership
+# 2. type, SIGHASH type
+# 3. output(s), this is only used for SIGHASH_SINGLE and SIGHASH_MULTIPLE types,
 # for SIGHASH_SINGLE, it stores an integer denoting the index of output to be
 # signed; for SIGHASH_MULTIPLE, it stores a string of `,` separated array denoting
 # outputs to sign
-if ARGV.length < 4
+if ARGV.length != 3 && ARGV.length != 4
   raise "Wrong number of arguments!"
 end
 
@@ -28,14 +25,12 @@ def hex_to_bin(s)
   s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
 end
 
+
 tx = CKB.load_tx
 sha3 = Sha3.new
 
-ARGV.drop(3).each do |argument|
-  sha3.update(argument)
-end
-
-sighash_type = ARGV[3].to_i
+sha3.update(ARGV[2])
+sighash_type = ARGV[2].to_i
 
 if sighash_type & SIGHASH_ANYONECANPAY != 0
   # Only hash current input
@@ -62,8 +57,8 @@ when SIGHASH_ALL
     end
   end
 when SIGHASH_SINGLE
-  raise "Not enough arguments" unless ARGV[4]
-  output_index = ARGV[4].to_i
+  raise "Not enough arguments" unless ARGV[3]
+  output_index = ARGV[3].to_i
   output = tx["outputs"][output_index]
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
@@ -71,8 +66,8 @@ when SIGHASH_SINGLE
     sha3.update(hash)
   end
 when SIGHASH_MULTIPLE
-  raise "Not enough arguments" unless ARGV[4]
-  ARGV[4].split(",").each do |output_index|
+  raise "Not enough arguments" unless ARGV[3]
+  ARGV[3].split(",").each do |output_index|
     output_index = output_index.to_i
     output = tx["outputs"][output_index]
     sha3.update(output["capacity"].to_s)
@@ -84,8 +79,8 @@ when SIGHASH_MULTIPLE
 end
 hash = sha3.final
 
-pubkey = ARGV[1]
-signature = ARGV[2]
+pubkey = ARGV[0]
+signature = ARGV[1]
 
 unless Secp256k1.verify(hex_to_bin(pubkey), hex_to_bin(signature), hash)
   raise "Signature verification error!"
