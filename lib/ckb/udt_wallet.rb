@@ -150,9 +150,6 @@ module Ckb
         }
       end
 
-      start = inputs.size
-      length = i.inputs.size
-
       self_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
