@@ -39,6 +39,83 @@ module Ckb
       bin_to_prefix_hex(s.digest)
     end
 
+    def self.sign_sighash_multiple_anyonecanpay_inputs(inputs, outputs, privkey)
+      key = Secp256k1::PrivateKey.new(privkey: privkey)
+      inputs.map do |input|
+        sighash_type = 0x84.to_s
+        s = SHA3::Digest::SHA256.new
+        s.update(sighash_type)
+        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
+        s.update(input[:previous_output][:index].to_s)
+        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
+        outputs.each do |output|
+          s.update(output[:capacity].to_s)
+          s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+          if output[:contract]
+            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+          end
+        end
+
+        signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+        signature_hex = Ckb::Utils.bin_to_hex(signature)
+
+        # output(s) will be filled when assembling the transaction
+        unlock = input[:unlock].merge(args: [signature_hex, sighash_type])
+        input.merge(unlock: unlock)
+      end
+    end
+
+    def self.sign_sighash_all_anyonecanpay_inputs(inputs, outputs, privkey)
+      key = Secp256k1::PrivateKey.new(privkey: privkey)
+      inputs.map do |input|
+        sighash_type = 0x81.to_s
+        s = SHA3::Digest::SHA256.new
+        s.update(sighash_type)
+        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
+        s.update(input[:previous_output][:index].to_s)
+        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
+        outputs.each do |output|
+          s.update(output[:capacity].to_s)
+          s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+          if output[:contract]
+            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+          end
+        end
+
+        signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+        signature_hex = Ckb::Utils.bin_to_hex(signature)
+
+        unlock = input[:unlock].merge(args: [signature_hex, sighash_type])
+        input.merge(unlock: unlock)
+      end
+    end
+
+    def self.sign_sighash_all_inputs(inputs, outputs, privkey)
+      s = SHA3::Digest::SHA256.new
+      sighash_type = 0x1.to_s
+      s.update(sighash_type)
+      inputs.each do |input|
+        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
+        s.update(input[:previous_output][:index].to_s)
+        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
+      end
+      outputs.each do |output|
+        s.update(output[:capacity].to_s)
+        s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+        if output[:contract]
+          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+        end
+      end
+      key = Secp256k1::PrivateKey.new(privkey: privkey)
+      signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+      signature_hex = Ckb::Utils.bin_to_hex(signature)
+
+      inputs.map do |input|
+        unlock = input[:unlock].merge(args: [signature_hex, sighash_type])
+        input.merge(unlock: unlock)
+      end
+    end
+
     # In Ruby, bytes are represented using String, but Rust uses Vec<u8>
     # to represent bytes, which needs raw array in JSON part, hence we
     # have to do type conversions here.

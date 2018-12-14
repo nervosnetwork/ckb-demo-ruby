@@ -1,13 +1,12 @@
 # This contract needs 2 signed arguments:
-# 1. token name, this is just a placeholder to distinguish between tokens,
+# 0. token name, this is just a placeholder to distinguish between tokens,
 # it will not be used in the actual contract. The pair of token name and
 # pubkey uniquely identifies a token.
-# 2. pubkey, used to perform supermode operations such as issuing new tokens
-# This contract also needs 1 or 2 unsigned arguments:
-# 3. Current contract type hash, will be verified in unlock contract
-# 4. (optional) supermode signature, when present and verified, the transaction
+# 1. pubkey, used to perform supermode operations such as issuing new tokens
+# This contract might also need 1 optional unsigned argument:
+# 2. (optional) supermode signature, when present and verified, the transaction
 # can perform super mode operations
-if ARGV.length < 3
+if ARGV.length != 2 && ARGV.length != 3
   raise "Not enough arguments!"
 end
 
@@ -18,7 +17,7 @@ def hex_to_bin(s)
   s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
 end
 
-contract_type_hash = hex_to_bin(ARGV[2])
+contract_type_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::CONTRACT)
 
 tx = CKB.load_tx
 
@@ -31,7 +30,7 @@ supermode = false
 # the script to a special mode by attaching a signature signed from private
 # key for the pubkey attached. With this signature, they will be able to
 # add more tokens.
-if ARGV.length >= 4
+if ARGV.length == 3
   sha3 = Sha3.new
   sha3.update(contract_type_hash)
   tx["inputs"].each_with_index do |input, i|
@@ -48,7 +47,7 @@ if ARGV.length >= 4
 
   data = sha3.final
 
-  unless Secp256k1.verify(hex_to_bin(ARGV[1]), hex_to_bin(ARGV[3]), data)
+  unless Secp256k1.verify(hex_to_bin(ARGV[1]), hex_to_bin(ARGV[2]), data)
     raise "Signature verification error!"
   end
   supermode = true
