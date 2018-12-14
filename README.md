@@ -212,3 +212,20 @@ The following code fulfills this step:
 [20] pry(main)> alice_token1.get_balance
 => 12345
 ```
+
+### User Defined Token which uses only one cell per wallet:
+
+```bash
+[1] pry(main)> admin = Ckb::Wallet.from_hex(Ckb::Api.new, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> alice = Ckb::Wallet.from_hex(Ckb::Api.new, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
+[3] pry(main)> token_info2 = admin.created_token_info("Token 2")
+[4] pry(main)> admin_cell_token2 = admin.udt_cell_wallet(token_info2)
+[5] pry(main)> alice_cell_token2 = alice.udt_cell_wallet(token_info2)
+[6] pry(main)> admin.create_udt_token(10000, "Token 2", 10000000, cell_wallet: true)
+[7] pry(main)> alice.create_udt_cell_wallet_cell(3000, token_info2)
+[8] pry(main)> admin_cell_token2.send_tokens(12345, alice_cell_token2)
+[9] pry(main)> admin_cell_token2.get_balance
+[10] pry(main)> alice_cell_token2.get_balance
+```
+
+NOTE: While it might be possible to mix the 2 ways of using user defined token above in one token, we don't really recommend that since it could be the source of a lot of confusions.
