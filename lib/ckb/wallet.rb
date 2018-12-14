@@ -108,14 +108,14 @@ module Ckb
 
     # Create a new cell for storing an existing user defined token, you can
     # think this as an ethereum account for a user defined token
-    def create_udt_cell_wallet_cell(capacity, token_info)
-      if udt_cell_wallet(token_info).created?
+    def create_udt_account_wallet_cell(capacity, token_info)
+      if udt_account_wallet(token_info).created?
         raise "Cell is already created!"
       end
       cell = {
         capacity: capacity,
         data: [0].pack("Q<"),
-        lock: udt_cell_wallet(token_info).address,
+        lock: udt_account_wallet(token_info).address,
         contract: {
           version: 0,
           args: [],
@@ -158,9 +158,9 @@ module Ckb
     end
 
     # Issue a new user defined token using current wallet as token superuser
-    def create_udt_token(capacity, token_name, tokens, cell_wallet: false)
+    def create_udt_token(capacity, token_name, tokens, account_wallet: false)
       token_info = created_token_info(token_name)
-      wallet = cell_wallet ? udt_cell_wallet(token_info) : udt_wallet(token_info)
+      wallet = account_wallet ? udt_account_wallet(token_info) : udt_wallet(token_info)
 
       i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
@@ -213,8 +213,8 @@ module Ckb
       Ckb::UdtWallet.new(api, privkey, token_info)
     end
 
-    def udt_cell_wallet(token_info)
-      Ckb::UdtCellWallet.new(api, privkey, token_info)
+    def udt_account_wallet(token_info)
+      Ckb::UdtAccountWallet.new(api, privkey, token_info)
     end
 
     private

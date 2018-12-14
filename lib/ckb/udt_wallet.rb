@@ -168,7 +168,7 @@ module Ckb
       api.send_transaction(tx)
     end
 
-    # Merge multiple UDT cells into one so we can use UdtCellWallet
+    # Merge multiple UDT cells into one so we can use UdtAccountWallet
     def merge_cells
       inputs = []
       total_amount = 0
@@ -292,7 +292,7 @@ module Ckb
     end
   end
 
-  class UdtCellWallet < UdtBaseWallet
+  class UdtAccountWallet < UdtBaseWallet
     def get_balance
       fetch_cell[:amount]
     end
