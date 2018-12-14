@@ -11,7 +11,7 @@
 # for SIGHASH_SINGLE, it stores an integer denoting the index of output to be
 # signed; for SIGHASH_MULTIPLE, it stores a string of `,` separated array denoting
 # outputs to sign
-if ARGV.length < 4
+if ARGV.length != 4 && ARGV.length != 5
   raise "Wrong number of arguments!"
 end
 
@@ -31,10 +31,7 @@ end
 tx = CKB.load_tx
 sha3 = Sha3.new
 
-ARGV.drop(3).each do |argument|
-  sha3.update(argument)
-end
-
+sha3.update(ARGV[3])
 sighash_type = ARGV[3].to_i
 
 if sighash_type & SIGHASH_ANYONECANPAY != 0

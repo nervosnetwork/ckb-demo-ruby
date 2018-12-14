@@ -6,6 +6,7 @@ require "securerandom"
 
 module Ckb
   UNLOCK_SCRIPT = File.read(File.expand_path("../../../contracts/udt/unlock.rb", __FILE__))
+  UNLOCK_SINGLE_CELL_SCRIPT = File.read(File.expand_path("../../../contracts/udt/unlock_single_cell.rb", __FILE__))
   CONTRACT_SCRIPT = File.read(File.expand_path("../../../contracts/udt/contract.rb", __FILE__))
 
   class TokenInfo
@@ -18,7 +19,7 @@ module Ckb
     end
   end
 
-  class UdtWallet
+  class UdtBaseWallet
     attr_reader :api
     attr_reader :privkey
     attr_reader :token_info
@@ -45,6 +46,34 @@ module Ckb
       mruby_unlock_type_hash
     end
 
+    def mruby_contract_script_json_object
+      {
+        version: 0,
+        reference: api.mruby_cell_hash,
+        signed_args: [
+          CONTRACT_SCRIPT,
+          token_info.name,
+          token_info.pubkey
+        ]
+      }
+    end
+
+    def mruby_unlock_type_hash
+      Ckb::Utils.json_script_to_type_hash(mruby_unlock_script_json_object)
+    end
+
+    def mruby_contract_type_hash
+      Ckb::Utils.json_script_to_type_hash(mruby_contract_script_json_object)
+    end
+
+    def get_transaction(hash_hex)
+      api.get_transaction(hash_hex)
+    end
+
+    def pubkey_bin
+      Ckb::Utils.extract_pubkey_bin(privkey)
+    end
+
     def get_unspent_cells
       hash = mruby_unlock_type_hash
       to = api.get_tip_number
@@ -53,7 +82,9 @@ module Ckb
       while current_from <= to
         current_to = [current_from + 100, to].min
         cells = api.get_cells_by_type_hash(hash, current_from, current_to)
-        cells_with_data = cells.map do |cell|
+        cells_with_data = cells.select do |cell|
+          cell[:lock] == address
+        end.map do |cell|
           tx = get_transaction(cell[:outpoint][:hash])
           amount = tx[:transaction][:outputs][cell[:outpoint][:index]][:data].pack("c*").unpack("Q<")[0]
           cell.merge(amount: amount)
@@ -63,34 +94,11 @@ module Ckb
       end
       results
     end
+  end
 
+  class UdtWallet < UdtBaseWallet
     def get_balance
       get_unspent_cells.map { |c| c[:amount] }.reduce(0, &:+)
-    end
-
-    def generate_output(udt_address, amount, capacity)
-      output = {
-        capacity: capacity,
-        data: [amount].pack("Q<"),
-        lock: udt_address,
-        contract: {
-          version: 0,
-          args: [],
-          reference: api.mruby_cell_hash,
-          signed_args: [
-            Ckb::CONTRACT_SCRIPT,
-            token_info.name,
-            token_info.pubkey
-          ]
-        }
-      }
-
-      min_capacity = calculate_cell_min_capacity(output)
-      if capacity < min_capacity
-        raise "Capacity is not enough to hold the whole cell, minimal capacity: #{min_capacity}"
-      end
-
-      output
     end
 
     # Generate a partial tx which provides CKB coins in exchange for UDT tokens.
@@ -160,6 +168,49 @@ module Ckb
       api.send_transaction(tx)
     end
 
+    # Merge multiple UDT cells into one so we can use UdtAccountWallet
+    def merge_cells
+      inputs = []
+      total_amount = 0
+      total_capacity = 0
+      get_unspent_cells.each do |cell|
+        input = {
+          previous_output: {
+            hash: cell[:outpoint][:hash],
+            index: cell[:outpoint][:index]
+          },
+          unlock: mruby_unlock_script_json_object
+        }
+        inputs << input
+        input_capacity += cell[:capacity]
+        input_amount += cell[:amount]
+      end
+      outputs = [
+        {
+          capacity: total_capacity,
+          data: [total_amount].pack("Q<"),
+          lock: wallet.udt_cell_wallet(token_info).address,
+          contract: {
+            version: 0,
+            args: [mruby_contract_type_hash],
+            reference: api.mruby_cell_hash,
+            signed_args: [
+              Ckb::CONTRACT_SCRIPT,
+              token_info.name,
+              token_info.pubkey
+            ]
+          }
+        }
+      ]
+      tx = {
+        version: 0,
+        deps: [api.mruby_script_outpoint],
+        inputs: Ckb::Utils.sign_sighash_all_inputs(inputs, outputs, privkey),
+        outputs: outputs
+      }
+      api.send_transaction(tx)
+    end
+
     def mruby_unlock_script_json_object
       {
         version: 0,
@@ -170,30 +221,6 @@ module Ckb
           Ckb::Utils.bin_to_hex(pubkey_bin)
         ]
       }
-    end
-
-    def mruby_contract_script_json_object
-      {
-        version: 0,
-        reference: api.mruby_cell_hash,
-        signed_args: [
-          CONTRACT_SCRIPT,
-          token_info.name,
-          token_info.pubkey
-        ]
-      }
-    end
-
-    def mruby_unlock_type_hash
-      Ckb::Utils.json_script_to_type_hash(mruby_unlock_script_json_object)
-    end
-
-    def mruby_contract_type_hash
-      Ckb::Utils.json_script_to_type_hash(mruby_contract_script_json_object)
-    end
-
-    def get_transaction(hash_hex)
-      api.get_transaction(hash_hex)
     end
 
     private
@@ -211,6 +238,31 @@ module Ckb
         capacity += (contract[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
       end
       capacity
+    end
+
+    def generate_output(udt_address, amount, capacity)
+      output = {
+        capacity: capacity,
+        data: [amount].pack("Q<"),
+        lock: udt_address,
+        contract: {
+          version: 0,
+          args: [],
+          reference: api.mruby_cell_hash,
+          signed_args: [
+            Ckb::CONTRACT_SCRIPT,
+            token_info.name,
+            token_info.pubkey
+          ]
+        }
+      }
+
+      min_capacity = Ckb::Utils.calculate_cell_min_capacity(output)
+      if capacity < min_capacity
+        raise "Capacity is not enough to hold the whole cell, minimal capacity: #{min_capacity}"
+      end
+
+      output
     end
 
     def gather_inputs(amount)
@@ -238,17 +290,111 @@ module Ckb
       OpenStruct.new(inputs: inputs, amounts: input_amounts,
                      capacities: input_capacities)
     end
+  end
 
-    def pubkey_bin
-      Ckb::Utils.extract_pubkey_bin(privkey)
+  class UdtAccountWallet < UdtBaseWallet
+    def get_balance
+      fetch_cell[:amount]
     end
 
-    def self.random(api)
-      self.new(api, SecureRandom.bytes(32))
+    def latest_outpoint
+      fetch_cell[:outpoint]
     end
 
-    def self.from_hex(api, privkey_hex)
-      self.new(api, Ckb::Utils.hex_to_bin(privkey_hex))
+    def created?
+      get_unspent_cells.length > 0
+    end
+
+    def fetch_cell
+      cells = get_unspent_cells
+      case cells.length
+      when 0
+        raise "Please create udt cell wallet first!"
+      when 1
+        cells[0]
+      else
+        raise "There's more than one cell for this UDT! You can use merge_cells in UdtWallet to merge them into one"
+      end
+    end
+
+    # Generates a partial tx that provides some UDTs for other user, who
+    # can only accept the exact amount provided here but no more
+    def send_tokens(amount, target_wallet)
+      cell = fetch_cell
+      target_cell = target_wallet.fetch_cell
+      if amount > cell[:amount]
+        raise "Do not have that much amount!"
+      end
+      inputs = [
+        {
+          previous_output: {
+            hash: cell[:outpoint][:hash],
+            index: cell[:outpoint][:index]
+          },
+          unlock: mruby_unlock_script_json_object
+        }
+      ]
+      outputs = [
+        {
+          capacity: cell[:capacity],
+          data: [cell[:amount] - amount].pack("Q<"),
+          lock: address,
+          contract: {
+            version: 0,
+            args: [],
+            reference: api.mruby_cell_hash,
+            signed_args: [
+              Ckb::CONTRACT_SCRIPT,
+              token_info.name,
+              token_info.pubkey
+            ]
+          }
+        },
+        {
+          capacity: target_cell[:capacity],
+          data: [target_cell[:amount] + amount].pack("Q<"),
+          lock: target_cell[:lock],
+          contract: {
+            version: 0,
+            args: [],
+            reference: api.mruby_cell_hash,
+            signed_args: [
+              Ckb::CONTRACT_SCRIPT,
+              token_info.name,
+              token_info.pubkey
+            ]
+          }
+        }
+      ]
+      signed_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(inputs, outputs, privkey)
+      # This doesn't need a signature
+      target_input = {
+        previous_output: {
+          hash: target_cell[:outpoint][:hash],
+          index: target_cell[:outpoint][:index]
+        },
+        unlock: target_wallet.mruby_unlock_script_json_object,
+      }
+      tx = {
+        version: 0,
+        deps: [api.mruby_script_outpoint],
+        inputs: signed_inputs + [target_input],
+        outputs: outputs
+      }
+      api.send_transaction(tx)
+    end
+
+    def mruby_unlock_script_json_object
+      {
+        version: 0,
+        reference: api.mruby_cell_hash,
+        signed_args: [
+          UNLOCK_SINGLE_CELL_SCRIPT,
+          token_info.name,
+          Ckb::Utils.bin_to_hex(pubkey_bin)
+        ],
+        args: []
+      }
     end
   end
 end

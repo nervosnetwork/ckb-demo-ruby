@@ -116,6 +116,22 @@ module Ckb
       end
     end
 
+    def self.calculate_cell_min_capacity(output)
+      capacity = 8 + output[:data].size + Ckb::Utils.hex_to_bin(output[:lock]).size
+      if contract = output[:contract]
+        capacity += 1
+        capacity += (contract[:args] || []).map { |arg| arg.size }.reduce(0, &:+)
+        if contract[:reference]
+          capacity += Ckb::Utils.hex_to_bin(contract[:reference]).size
+        end
+        if contract[:binary]
+          capacity += contract[:binary].size
+        end
+        capacity += (contract[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
+      end
+      capacity
+    end
+
     # In Ruby, bytes are represented using String, but Rust uses Vec<u8>
     # to represent bytes, which needs raw array in JSON part, hence we
     # have to do type conversions here.

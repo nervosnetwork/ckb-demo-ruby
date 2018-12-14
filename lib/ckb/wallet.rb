@@ -106,15 +106,68 @@ module Ckb
       TokenInfo.new(token_name, Ckb::Utils.bin_to_hex(pubkey_bin))
     end
 
-    def create_udt_token(capacity, token_name, tokens)
+    # Create a new cell for storing an existing user defined token, you can
+    # think this as an ethereum account for a user defined token
+    def create_udt_account_wallet_cell(capacity, token_info)
+      if udt_account_wallet(token_info).created?
+        raise "Cell is already created!"
+      end
+      cell = {
+        capacity: capacity,
+        data: [0].pack("Q<"),
+        lock: udt_account_wallet(token_info).address,
+        contract: {
+          version: 0,
+          args: [],
+          reference: api.mruby_cell_hash,
+          signed_args: [
+            Ckb::CONTRACT_SCRIPT,
+            token_info.name,
+            token_info.pubkey
+          ]
+        }
+      }
+      needed_capacity = Ckb::Utils.calculate_cell_min_capacity(cell)
+      if capacity < needed_capacity
+        raise "Not enough capacity for account cell, needed: #{needed_capacity}"
+      end
+
+      i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      outputs = [cell]
+      if input_capacities > capacity
+        outputs << {
+          capacity: input_capacities - capacity,
+          data: [],
+          lock: self.address
+        }
+      end
+      tx = {
+        version: 0,
+        deps: [api.mruby_script_outpoint],
+        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
+        outputs: outputs
+      }
+      hash = api.send_transaction(tx)
+      # This is in fact an OutPoint here
+      {
+        hash: hash,
+        index: 0
+      }
+    end
+
+    # Issue a new user defined token using current wallet as token superuser
+    def create_udt_token(capacity, token_name, tokens, account_wallet: false)
       token_info = created_token_info(token_name)
+      wallet = account_wallet ? udt_account_wallet(token_info) : udt_wallet(token_info)
 
       i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
       data = [tokens].pack("Q<")
       s = SHA3::Digest::SHA256.new
-      s.update(Ckb::Utils.hex_to_bin(udt_wallet(token_info).mruby_contract_type_hash))
+      s.update(Ckb::Utils.hex_to_bin(wallet.mruby_contract_type_hash))
       s.update(data)
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
@@ -124,7 +177,7 @@ module Ckb
         {
           capacity: capacity,
           data: data,
-          lock: udt_wallet(token_info).address,
+          lock: wallet.address,
           contract: {
             version: 0,
             args: [
@@ -158,6 +211,10 @@ module Ckb
 
     def udt_wallet(token_info)
       Ckb::UdtWallet.new(api, privkey, token_info)
+    end
+
+    def udt_account_wallet(token_info)
+      Ckb::UdtAccountWallet.new(api, privkey, token_info)
     end
 
     private
