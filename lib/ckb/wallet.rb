@@ -228,8 +228,8 @@ module Ckb
       get_unspent_cells.each do |cell|
         input = {
           previous_output: {
-            hash: cell[:outpoint][:hash],
-            index: cell[:outpoint][:index]
+            hash: cell[:out_point][:hash],
+            index: cell[:out_point][:index]
           },
           unlock: verify_script_json_object
         }
