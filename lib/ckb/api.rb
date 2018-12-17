@@ -28,7 +28,7 @@ module Ckb
     end
 
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
-    def basic_verify_script_outpoint
+    def basic_verify_script_out_point
       OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
                      index: 0)
     end
@@ -38,7 +38,7 @@ module Ckb
     end
 
     # Returns a contract that could load Ruby source code in CKB
-    def mruby_script_outpoint
+    def mruby_script_out_point
       {
         hash: genesis_block[:transactions][0][:hash],
         index: 2
@@ -79,13 +79,13 @@ module Ckb
       rpc_request("get_transaction", params: [tx_hash_hex])[:result]
     end
 
-    def get_current_cell(outpoint)
+    def get_current_cell(out_point)
       # This way we can detect type errors early instead of weird RPC errors
-      normalized_outpoint = {
-        hash: outpoint[:hash],
-        index: outpoint[:index]
+      normalized_out_point = {
+        hash: out_point[:hash],
+        index: out_point[:index]
       }
-      rpc_request("get_current_cell", params: [normalized_outpoint])[:result]
+      rpc_request("get_current_cell", params: [normalized_out_point])[:result]
     end
 
     def send_transaction(transaction)

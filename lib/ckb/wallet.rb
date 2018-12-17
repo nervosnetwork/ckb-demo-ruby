@@ -62,7 +62,7 @@ module Ckb
       end
       {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -96,7 +96,7 @@ module Ckb
 
       {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: Ckb::Utils.sign_sighash_multiple_anyonecanpay_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -145,7 +145,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -201,7 +201,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -228,8 +228,8 @@ module Ckb
       get_unspent_cells.each do |cell|
         input = {
           previous_output: {
-            hash: cell[:outpoint][:hash],
-            index: cell[:outpoint][:index]
+            hash: cell[:out_point][:hash],
+            index: cell[:out_point][:index]
           },
           unlock: verify_script_json_object
         }

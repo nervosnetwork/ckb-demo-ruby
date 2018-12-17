@@ -85,8 +85,8 @@ module Ckb
         cells_with_data = cells.select do |cell|
           cell[:lock] == address
         end.map do |cell|
-          tx = get_transaction(cell[:outpoint][:hash])
-          amount = tx[:transaction][:outputs][cell[:outpoint][:index]][:data].pack("c*").unpack("Q<")[0]
+          tx = get_transaction(cell[:out_point][:hash])
+          amount = tx[:transaction][:outputs][cell[:out_point][:index]][:data].pack("c*").unpack("Q<")[0]
           cell.merge(amount: amount)
         end
         results.concat(cells_with_data)
@@ -161,7 +161,7 @@ module Ckb
       self_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: inputs + self_inputs,
         outputs: outputs
       }
@@ -176,8 +176,8 @@ module Ckb
       get_unspent_cells.each do |cell|
         input = {
           previous_output: {
-            hash: cell[:outpoint][:hash],
-            index: cell[:outpoint][:index]
+            hash: cell[:out_point][:hash],
+            index: cell[:out_point][:index]
           },
           unlock: mruby_unlock_script_json_object
         }
@@ -204,7 +204,7 @@ module Ckb
       ]
       tx = {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(inputs, outputs, privkey),
         outputs: outputs
       }
@@ -272,8 +272,8 @@ module Ckb
       get_unspent_cells.each do |cell|
         input = {
           previous_output: {
-            hash: cell[:outpoint][:hash],
-            index: cell[:outpoint][:index]
+            hash: cell[:out_point][:hash],
+            index: cell[:out_point][:index]
           },
           unlock: mruby_unlock_script_json_object
         }
@@ -297,8 +297,8 @@ module Ckb
       fetch_cell[:amount]
     end
 
-    def latest_outpoint
-      fetch_cell[:outpoint]
+    def latest_out_point
+      fetch_cell[:out_point]
     end
 
     def created?
@@ -328,8 +328,8 @@ module Ckb
       inputs = [
         {
           previous_output: {
-            hash: cell[:outpoint][:hash],
-            index: cell[:outpoint][:index]
+            hash: cell[:out_point][:hash],
+            index: cell[:out_point][:index]
           },
           unlock: mruby_unlock_script_json_object
         }
@@ -370,14 +370,14 @@ module Ckb
       # This doesn't need a signature
       target_input = {
         previous_output: {
-          hash: target_cell[:outpoint][:hash],
-          index: target_cell[:outpoint][:index]
+          hash: target_cell[:out_point][:hash],
+          index: target_cell[:out_point][:index]
         },
         unlock: target_wallet.mruby_unlock_script_json_object,
       }
       tx = {
         version: 0,
-        deps: [api.mruby_script_outpoint],
+        deps: [api.mruby_script_out_point],
         inputs: signed_inputs + [target_input],
         outputs: outputs
       }
