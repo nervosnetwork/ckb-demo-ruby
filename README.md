@@ -130,6 +130,8 @@ $ bundle exec pry -r ./lib/ckb/wallet.rb
 [1] pry(main)>
 ```
 
+Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem, which requires manual install of secp256k1 library. Follow the [prerequiste](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequiste) part in the gem to install secp256k1 library locally.
+
 In the Ruby shell, we can start playing with the SDK.
 
 ### Basic wallet
