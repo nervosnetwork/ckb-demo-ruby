@@ -16,10 +16,11 @@ module Ckb
     end
 
     def rpc_request(method, params: nil)
-      response = Net::HTTP.post(
-        uri,
-        "{\"id\": 1, \"jsonrpc\": \"2.0\", \"method\": \"#{method}\", \"params\": #{params.to_json}}",
-        "Content-Type" => "application/json")
+      http = Net::HTTP.new(uri.host, uri.port)
+      request = Net::HTTP::Post.new(uri.request_uri)
+      request.body = { id: 1, jsonrpc: "2.0", method: "#{method}", params: params }.to_json
+      request["Content-Type"] = "application/json"
+      response = http.request(request)
       result = JSON.parse(response.body, symbolize_names: true)
       if result[:error]
         raise "jsonrpc error: #{result[:error]}"
