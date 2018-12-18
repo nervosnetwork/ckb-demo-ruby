@@ -12,7 +12,7 @@ Note that to focus on explaining contract model, certain fields in a cell(such a
 
 In CKB, each cell has 2 associated scripts:
 
-* A required lock script, note cell only stores the hash of the lock script, we will explain this later. This is used to verify *who* can unlock the cell, for example, we can put secp256k1 verification in lock script to verify a signature is indeed signed by the cell owner, and only unlock the cell when the signature is valid.
+* A required lock script, note cell usually only keeps the hash of the lock script, we will explain this later. This is used to verify *who* can unlock the cell, for example, we can put secp256k1 verification in lock script to verify a signature is indeed signed by the cell owner, and only unlock the cell when the signature is valid.
 * An optional type script. This is used to verify *how* one can use the cell, for example, type script can be used to ensure that no new tokens are created from the air when transferring user defined tokens.
 
 When unlocking a cell in a transaction, the corresponding input part should contain an unlock script, the hash of the unlock script should match `lock` part in the referenced cell(in other words, we are using `P2SH` scheme here). So another way of looking at this problem here, is that it's the `lock` part in the cell that really determines what unlock script is used here, and we can treat `lock` and `unlock` here as the same thing.
