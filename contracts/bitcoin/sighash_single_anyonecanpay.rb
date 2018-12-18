@@ -19,9 +19,9 @@ end
 tx = CKB.load_tx
 sha3 = Sha3.new
 
-outpoint = CKB.load_input_out_point(0, CKB::Source::CURRENT)
-sha3.update(outpoint["hash"])
-sha3.update(outpoint["index"].to_s)
+out_point = CKB.load_input_out_point(0, CKB::Source::CURRENT)
+sha3.update(out_point["hash"])
+sha3.update(out_point["index"].to_s)
 sha3.update(CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::LOCK_HASH).readall)
 output_index = ARGV[2].to_i
 output = tx["outputs"][output_index]

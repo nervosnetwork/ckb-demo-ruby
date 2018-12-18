@@ -39,9 +39,9 @@ if ARGV.length >= 4
 
   if sighash_type & SIGHASH_ANYONECANPAY != 0
     # Only hash current input
-    outpoint = CKB.load_input_out_point(0, CKB::Source::CURRENT)
-    sha3.update(outpoint["hash"])
-    sha3.update(outpoint["index"].to_s)
+    out_point = CKB.load_input_out_point(0, CKB::Source::CURRENT)
+    sha3.update(out_point["hash"])
+    sha3.update(out_point["index"].to_s)
     sha3.update(CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::LOCK_HASH).readall)
   else
     # Hash all inputs
