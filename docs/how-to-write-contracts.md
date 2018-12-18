@@ -1,6 +1,6 @@
 # Introduction
 
-This document explains how to write new contracts for CKB.
+This document explains how to write new scripts for CKB.
 
 # Transaction Model
 
@@ -8,7 +8,7 @@ Below is an example of CKB's transaction:
 
 ![Transaction Model](/docs/images/tx.png)
 
-Note that to focus on explaining contract model, certain fields in a cell(such as cell data) are omitted here for simplicity reason.
+Note that to focus on explaining script model, certain fields in a cell(such as cell data) are omitted here for simplicity reason.
 
 In CKB, each cell has 2 associated scripts:
 
@@ -24,22 +24,22 @@ In addition to the different use cases, lock script and type script are also exe
 Both lock and type scripts are represented using the [Script](https://github.com/nervosnetwork/ckb/blob/3abf2b1f43dd27e986c8b2ee311d91e896051d3a/protocol/src/protocol.fbs#L85-L91) model. Fields in this model include:
 
 * `version`: version field used to resolve incompatible upgrades.
-* `binary`: ELF formatted binary containing the actual RISC-V based contract
-* `reference`: if your contract already exists on CKB, you can use this field to *reference* the contract instead of including it again. You can just put the script hash(will explain later how this is calculated) in this `reference ` field, then list the cell containing the contract as a dep in current transaction. CKB would automatically locate cell, load the binary from there and use it as script `binary` part. Notice this only works when you don't provide a `binary` field value, otherwise the value in `binary` field always take precedence.
+* `binary`: ELF formatted binary containing the actual RISC-V based script
+* `reference`: if your script already exists on CKB, you can use this field to *reference* the script instead of including it again. You can just put the script hash(will explain later how this is calculated) in this `reference ` field, then list the cell containing the script as a dep in current transaction. CKB would automatically locate cell, load the binary from there and use it as script `binary` part. Notice this only works when you don't provide a `binary` field value, otherwise the value in `binary` field always take precedence.
 * `signed_args`: Signed arguments, we will explain later what they are and how to distinguish them from `args`
 * `args`: Normal arguments
 
-CKB scripts use UNIX standard execution environment. Each contract binary should contain a main function with the following signature:
+CKB scripts use UNIX standard execution environment. Each script binary should contain a main function with the following signature:
 
 ```c
 int main(int argc, char* argv[]);
 ```
 
-CKB will concat `signed_args` and `args`, then use the concatenated array to fill `argc`/`argv` part, then start the contract execution. Upon termination, the executed `main` function here will provide a return code, `0` means the contract execution succeeds, other values mean the execution fails.
+CKB will concat `signed_args` and `args`, then use the concatenated array to fill `argc`/`argv` part, then start the script execution. Upon termination, the executed `main` function here will provide a return code, `0` means the script execution succeeds, other values mean the execution fails.
 
-`signed_args` is introduced here to enable contract sharing: assume 2 CKB users both want to use secp256k1 algorithm to secure their cells, in order to do this, they will need contracts for secp256k1 verification, the contracts will also need to include their public key respectively. If they put public key directly in the contract binary, the difference in public keys will lead to different contract binaries, which is quite a waste of resource considering the majority part of the 2 contracts here is exactly the same. To solve this problem, they can each put their public key in `signed_args` part of the script model, then leverage the same secp256k1 contract binary. This way they can save as much resource as they can while preserving different ownerships. This might not be a huge save when we are talking 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
+`signed_args` is introduced here to enable script sharing: assume 2 CKB users both want to use secp256k1 algorithm to secure their cells, in order to do this, they will need scripts for secp256k1 verification, the scripts will also need to include their public key respectively. If they put public key directly in the script binary, the difference in public keys will lead to different script binaries, which is quite a waste of resource considering the majority part of the 2 scripts here is exactly the same. To solve this problem, they can each put their public key in `signed_args` part of the script model, then leverage the same secp256k1 script binary. This way they can save as much resource as they can while preserving different ownerships. This might not be a huge save when we are talking 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
 
-Each script has a `type hash` which uniquely identifies the script, for example, the `type hash` of unlock script, is exactly the corresponding `lock` field value in the referenced cell. When calculating type hash for a script, `version`, `binary`, `reference` and `signed_args` will all be used. So another way of looking at `signed_args`, is that it really is a part of the contract script.
+Each script has a `type hash` which uniquely identifies the script, for example, the `type hash` of unlock script, is exactly the corresponding `lock` field value in the referenced cell. When calculating type hash for a script, `version`, `binary`, `reference` and `signed_args` will all be used. So another way of looking at `signed_args`, is that it really is a part of the script.
 
 In practice, one example script might look like following:
 
@@ -57,19 +57,19 @@ In practice, one example script might look like following:
 }
 ```
 
-This script uses `reference` field to refer to an existing cell for contract binary. It contains one `signed_args` item, which is the public key for current user. It also has 2 items for `args`: the signature calculated for current transaction, and the sighash type to use here. Note that while this example has one `signed_args` item and 2 `args` items, this is completely determined by the actual contract binary running, CKB doesn't have any restrictions here.
+This script uses `reference` field to refer to an existing cell for script binary. It contains one `signed_args` item, which is the public key for current user. It also has 2 items for `args`: the signature calculated for current transaction, and the sighash type to use here. Note that while this example has one `signed_args` item and 2 `args` items, this is completely determined by the actual script binary running, CKB doesn't have any restrictions here.
 
-# Writing Contracts in Ruby
+# Writing Scripts in Ruby
 
-While it is possible to write contracts in pure C, it is not the main focus of this document. Here we will explain how to write Ruby contracts with our custom [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts). Note this just serves as an example here, it doesn't mean CKB is limited to contracts written in Ruby. On the contrary, CKB is extremely flexible and you can use almost any languages out there to write contracts, for example, you can leverage [micropython](https://micropython.org/) to write Python contracts, you can use [duktape](https://duktape.org/) to build JavaScript contracts. Of course if your focus is on performance, you can also directly use C to write contracts that extracts the maximum computing power out of CKB VM, and when Rust's RISC-V port becomes more stable, you can also use Rust to write CKB contracts.
+While it is possible to write scripts in pure C, it is not the main focus of this document. Here we will explain how to write Ruby scripts with our custom [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts). Note this just serves as an example here, it doesn't mean CKB is limited to scripts written in Ruby. On the contrary, CKB is extremely flexible and you can use almost any languages out there to write scripts, for example, you can leverage [micropython](https://micropython.org/) to write Python scripts, you can use [duktape](https://duktape.org/) to build JavaScript scripts. Of course if your focus is on performance, you can also directly use C to write scripts that extracts the maximum computing power out of CKB VM, and when Rust's RISC-V port becomes more stable, you can also use Rust to write CKB scripts.
 
-To help writing CKB contracts, we have ported [mruby](https://github.com/mruby/mruby) to CKB VM environment and also created several mruby libraries supporting CKB contract development:
+To help writing CKB scripts, we have ported [mruby](https://github.com/mruby/mruby) to CKB VM environment and also created several mruby libraries supporting CKB script development:
 
 * mruby-sha3: A sha3 binding for mruby environment
 * mruby-secp256k1: A secp256k1 binding for mruby environment
 * mruby-ckb: CKB supporting libraries, including features to read transaction data as well as sending debug messages.
 
-To build mruby contracts, first follow the [setup steps](https://github.com/nervosnetwork/ckb-demo-ruby-sdk#configure-ckb) in the Ruby SDK. Then you can locate the mruby contract cell via the Ruby SDK:
+To build `mruby-contracts`, first follow the [setup steps](https://github.com/nervosnetwork/ckb-demo-ruby-sdk#configure-ckb) in the Ruby SDK. Then you can locate the mruby script cell via the Ruby SDK:
 
 ```ruby
 [1] pry(main)> api = Ckb::Api.new
@@ -94,11 +94,11 @@ To build mruby contracts, first follow the [setup steps](https://github.com/nerv
 }
 ```
 
-As you can see, the first argument of `signed_args` here is just a Ruby script, with this, CKB will then first load mruby, and run your Ruby script as the contract script. If this script throws an exception, it will be translated to non-zero return code, denoting contract execution error. If the script runs without exception, the contract will be considered success.
+As you can see, the first argument of `signed_args` here is just a Ruby script, with this, CKB will then first load mruby, and run your Ruby script as the actual script. If this script throws an exception, it will be translated to non-zero return code, denoting script execution error. If the script runs without exception, the script will be considered success.
 
 ## Ruby Libraries
 
-Even though Ruby is a powerful language, it cannot fulfill all the tasks without supporting libraries, we also provide a series of Ruby libraries helping writing contracts.
+Even though Ruby is a powerful language, it cannot fulfill all the tasks without supporting libraries, we also provide a series of Ruby libraries helping writing scripts.
 
 ### mruby-sha3
 
@@ -157,7 +157,7 @@ CKB.debug "I'm a debug message: ${5}"
 
 #### Load Transaction
 
-If we have the following snippet in a Ruby contract:
+If we have the following snippet in a Ruby script:
 
 ```ruby
 tx = CKB.load_tx
@@ -189,7 +189,7 @@ CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::LOCK)
 
 #### Load Input OutPoint
 
-If we have the following snippet in a Ruby contract:
+If we have the following snippet in a Ruby script:
 
 ```ruby
 CKB.debug "OutPoint: #{CKB.load_input_out_point(0, CKB::Source::CURRENT)}"
