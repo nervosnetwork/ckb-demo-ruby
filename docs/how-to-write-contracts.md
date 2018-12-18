@@ -10,7 +10,7 @@ Below is an example of CKB's transaction:
 
 Note that to focus on explaining contract model, certain fields in a cell(such as cell data) are omitted here for simplicity reason.
 
-In CKB, each cell has 2 contracts:
+In CKB, each cell has 2 associated scripts:
 
 * A required lock script, note cell only stores the hash of the lock script, we will explain this later. This is used to verify *who* can unlock the cell, for example, we can put secp256k1 verification in lock script to verify a signature is indeed signed by the cell owner, and only unlock the cell when the signature is valid.
 * An optional type script. This is used to verify *how* one can use the cell, for example, type script can be used to ensure that no new tokens are created from the air when transferring user defined tokens.
