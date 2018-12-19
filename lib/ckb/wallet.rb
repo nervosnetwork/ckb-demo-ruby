@@ -102,8 +102,8 @@ module Ckb
       }
     end
 
-    def created_token_info(token_name)
-      TokenInfo.new(token_name, Ckb::Utils.bin_to_hex(pubkey_bin))
+    def created_token_info(token_name, account_wallet: false)
+      TokenInfo.new(api, token_name, Ckb::Utils.bin_to_hex(pubkey_bin), account_wallet)
     end
 
     # Create a new cell for storing an existing user defined token, you can
@@ -116,16 +116,7 @@ module Ckb
         capacity: capacity,
         data: [0].pack("Q<"),
         lock: udt_account_wallet(token_info).address,
-        contract: {
-          version: 0,
-          args: [],
-          reference: api.mruby_cell_hash,
-          signed_args: [
-            Ckb::CONTRACT_SCRIPT,
-            token_info.name,
-            token_info.pubkey
-          ]
-        }
+        contract: token_info.contract_script_json_object
       }
       needed_capacity = Ckb::Utils.calculate_cell_min_capacity(cell)
       if capacity < needed_capacity
@@ -157,9 +148,150 @@ module Ckb
       }
     end
 
+    # Create a user defined token with fixed upper amount, subsequent invocations
+    # on this method will create different tokens.
+    def create_fixed_amount_token(capacity, tokens, rate, lock_hash: nil)
+      lock_hash ||= verify_type_hash
+
+      i = gather_inputs(capacity, MIN_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      ms = SHA3::Digest::SHA256.new
+      i.inputs.each do |input|
+        ms.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
+        ms.update(input[:previous_output][:index].to_s)
+        ms.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
+      end
+
+      info = FixedAmountTokenInfo.new(
+        api,
+        Ckb::Utils.bin_to_hex(ms.digest),
+        lock_hash,
+        Ckb::Utils.bin_to_hex(pubkey_bin),
+        rate)
+
+      data = [tokens].pack("Q<")
+      outputs = [
+        {
+          capacity: capacity,
+          data: data,
+          lock: info.genesis_unlock_type_hash,
+          contract: info.genesis_contract_script_json_object
+        }
+      ]
+      if input_capacities > capacity
+        outputs << {
+          capacity: input_capacities - capacity,
+          data: [],
+          lock: self.address
+        }
+      end
+
+      s = SHA3::Digest::SHA256.new
+      contract_type_hash_bin = Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(outputs[0][:contract]))
+      s.update(contract_type_hash_bin)
+      i.inputs.each do |input|
+        s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
+        s.update(input[:previous_output][:index].to_s)
+        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
+      end
+      s.update(outputs[0][:capacity].to_s)
+      s.update(Ckb::Utils.hex_to_bin(outputs[0][:lock]))
+      s.update(contract_type_hash_bin)
+      s.update(data)
+      if outputs[1]
+        s.update(outputs[1][:capacity].to_s)
+        s.update(Ckb::Utils.hex_to_bin(outputs[1][:lock]))
+      end
+
+      key = Secp256k1::PrivateKey.new(privkey: privkey)
+      signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+      signature_hex = Ckb::Utils.bin_to_hex(signature)
+
+      outputs[0][:contract][:args] = [signature_hex]
+
+      tx = {
+        version: 0,
+        deps: [api.mruby_script_out_point],
+        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
+        outputs: outputs
+      }
+      hash = api.send_transaction(tx)
+      OpenStruct.new(tx_hash: hash, token_info: info)
+    end
+
+    def purchase_fixed_amount_token(tokens, token_info)
+      paid_capacity = (tokens + token_info.rate - 1) / token_info.rate
+      paid_cell = {
+        capacity: paid_capacity,
+        data: [],
+        lock: token_info.lock_hash
+      }
+      needed_capacity = Ckb::Utils.calculate_cell_min_capacity(paid_cell)
+      if paid_capacity < needed_capacity
+        raise "Not enough capacity for account cell, needed: #{needed_capacity}"
+      end
+
+      i = gather_inputs(paid_capacity, MIN_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      wallet_cell = udt_account_wallet(token_info).fetch_cell
+      udt_genesis_cell = token_info.fetch_cell
+
+      # Those won't require signing
+      additional_inputs = [
+        {
+          previous_output: {
+            hash: wallet_cell[:out_point][:hash],
+            index: wallet_cell[:out_point][:index]
+          },
+          unlock: token_info.unlock_script_json_object(pubkey)
+        },
+        {
+          previous_output: {
+            hash: udt_genesis_cell[:out_point][:hash],
+            index: udt_genesis_cell[:out_point][:index]
+          },
+          unlock: token_info.genesis_unlock_script_json_object
+        }
+      ]
+
+      outputs = [
+        {
+          capacity: wallet_cell[:capacity],
+          data: [wallet_cell[:amount] + tokens].pack("Q<"),
+          lock: wallet_cell[:lock],
+          contract: token_info.contract_script_json_object
+        },
+        {
+          capacity: udt_genesis_cell[:capacity],
+          data: [udt_genesis_cell[:amount] - tokens].pack("Q<"),
+          lock: udt_genesis_cell[:lock],
+          contract: token_info.genesis_contract_script_json_object
+        },
+        paid_cell
+      ]
+      if input_capacities > paid_capacity
+        outputs << {
+          capacity: input_capacities - paid_capacity,
+          data: [],
+          lock: self.address
+        }
+      end
+
+      signed_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
+      tx = {
+        version: 0,
+        deps: [api.mruby_script_out_point],
+        inputs: signed_inputs + additional_inputs,
+        outputs: outputs
+      }
+      api.send_transaction(tx)
+    end
+
     # Issue a new user defined token using current wallet as token superuser
     def create_udt_token(capacity, token_name, tokens, account_wallet: false)
-      token_info = created_token_info(token_name)
+      token_info = created_token_info(token_name, account_wallet: account_wallet)
       wallet = account_wallet ? udt_account_wallet(token_info) : udt_wallet(token_info)
 
       i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
@@ -167,7 +299,7 @@ module Ckb
 
       data = [tokens].pack("Q<")
       s = SHA3::Digest::SHA256.new
-      s.update(Ckb::Utils.hex_to_bin(wallet.mruby_contract_type_hash))
+      s.update(Ckb::Utils.hex_to_bin(wallet.contract_type_hash))
       s.update(data)
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
@@ -243,6 +375,10 @@ module Ckb
         raise "Not enouch capacity!"
       end
       OpenStruct.new(inputs: inputs, capacities: input_capacities)
+    end
+
+    def pubkey
+      Ckb::Utils.bin_to_hex(pubkey_bin)
     end
 
     def pubkey_bin
