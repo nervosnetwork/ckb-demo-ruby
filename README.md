@@ -58,7 +58,7 @@ In this newly created folder, change the file `default.json` to the following co
     },
     "miner": {
         "new_transactions_threshold": 8,
-        "type_hash": "0xcf7294651a9e2033243b04cfd3fa35097d56b811824691a75cd29d50ac23720a",
+        "type_hash": "0x6c5b2cd24ce7cbc16ff368d116294b3c8e5e4f33197900396e9a35d52d8c0f83",
         "rpc_url": "http://127.0.0.1:8114/",
         "poll_interval": 5,
         "max_transactions": 10000,
@@ -158,7 +158,7 @@ If your miner balance is always 0, you might want to run the following command:
 
 ```bash
 [8] pry(main)> miner.address
-=> "0xcf7294651a9e2033243b04cfd3fa35097d56b811824691a75cd29d50ac23720a"
+=> "0x6c5b2cd24ce7cbc16ff368d116294b3c8e5e4f33197900396e9a35d52d8c0f83"
 ```
 
 And see if the miner address returned in your environment matches the value here, if not, it means that the mruby contract cell compiled in your environment is not exactly the same as the one we use here. In this case, please edit `type_hash` part in `/home/ubuntu/foo/bar/spec.json` with your value, and restart CKB, now miner should be able to pick up tokens mined in newer blocks.
