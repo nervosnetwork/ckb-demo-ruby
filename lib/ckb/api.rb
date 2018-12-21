@@ -15,6 +15,10 @@ module Ckb
       @uri = URI(host)
     end
 
+    def inspect
+      "\#<API@#{uri}>"
+    end
+
     def rpc_request(method, params: nil)
       http = Net::HTTP.new(uri.host, uri.port)
       request = Net::HTTP::Post.new(uri.request_uri)
