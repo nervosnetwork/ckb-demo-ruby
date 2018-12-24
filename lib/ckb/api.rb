@@ -7,9 +7,12 @@ require 'sha3'
 
 module Ckb
   URL = "http://localhost:8114"
+  DEFAULT_CONFIGURATION_FILENAME = File.expand_path("../../../conf.json", __FILE__)
 
   class Api
     attr_reader :uri
+    attr_reader :mruby_out_point
+    attr_reader :mruby_cell_hash
 
     def initialize(host: URL)
       @uri = URI(host)
@@ -33,30 +36,43 @@ module Ckb
     end
 
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
-    def basic_verify_script_out_point
-      OpenStruct.new(hash_value: Ckb::Utils.hex_to_bin(genesis_block[:transactions][0][:hash]),
-                     index: 0)
-    end
-
-    def verify_cell_hash_bin
-      SHA3::Digest::SHA256.digest(genesis_block[:transactions][0][:transaction][:outputs][0][:data].pack("c*"))
-    end
-
-    # Returns a contract that could load Ruby source code in CKB
-    def mruby_script_out_point
+    def always_success_script_out_point
       {
         hash: genesis_block[:transactions][0][:hash],
-        index: 2
+        index: 0
       }
     end
 
-    def mruby_cell_hash
-      system_cells = genesis_block[:transactions][0][:transaction][:outputs]
-      if system_cells.length < 3
-        raise "Cannot find mruby contract cell, please check your configuration"
-      end
-      hash_bin = SHA3::Digest::SHA256.digest(system_cells[2][:data].pack("c*"))
+    def always_success_cell_hash
+      hash_bin = SHA3::Digest::SHA256.digest(
+        genesis_block[:transactions][0][:transaction][:outputs][0][:data].pack("c*"))
       Ckb::Utils.bin_to_prefix_hex(hash_bin)
+    end
+
+    def set_configuration!(configuration)
+      @mruby_out_point = configuration[:out_point]
+      @mruby_cell_hash = configuration[:cell_hash]
+    end
+
+    def set_and_save_default_configuration!(configuration)
+      set_configuration!(configuration)
+      save_mruby_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+    end
+
+    def load_default_configuration!
+      load_mruby_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+    end
+
+    def load_mruby_configuration!(configuration_filename)
+      set_configuration!(JSON.parse(File.read(configuration_filename), symbolize_names: true))
+    end
+
+    def save_mruby_configuration!(configuration_filename)
+      conf = {
+        out_point: mruby_out_point,
+        cell_hash: mruby_cell_hash
+      }
+      File.write(configuration_filename, conf.to_json)
     end
 
     def genesis_block

@@ -117,17 +117,17 @@ module Ckb
     end
 
     def self.calculate_cell_min_capacity(output)
-      capacity = 8 + output[:data].size + Ckb::Utils.hex_to_bin(output[:lock]).size
+      capacity = 8 + output[:data].bytesize + Ckb::Utils.hex_to_bin(output[:lock]).bytesize
       if contract = output[:contract]
         capacity += 1
-        capacity += (contract[:args] || []).map { |arg| arg.size }.reduce(0, &:+)
+        capacity += (contract[:args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
         if contract[:reference]
-          capacity += Ckb::Utils.hex_to_bin(contract[:reference]).size
+          capacity += Ckb::Utils.hex_to_bin(contract[:reference]).bytesize
         end
         if contract[:binary]
-          capacity += contract[:binary].size
+          capacity += contract[:binary].bytesize
         end
-        capacity += (contract[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
+        capacity += (contract[:signed_args] || []).map { |arg| arg.bytesize }.reduce(&:+)
       end
       capacity
     end

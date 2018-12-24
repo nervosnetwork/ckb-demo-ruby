@@ -10,113 +10,61 @@ If you don't want to build mruby-contracts yourself, we have a prebuilt binary a
 
 ## Configure CKB
 
-Before we are using this SDK, we will need a customized CKB config for the following purposes:
+First, follow the [README](https://github.com/nervosnetwork/ckb/blob/develop/README.md) steps to make sure CKB is up and running.
 
-* We will need a stable RPC port we can connect to.
-* We will need to include mruby contract as a system cell. Notice it's also possible to create a new cell with mruby contract as the cell data, then referencing this cell later. Here for simplicity, we are sticking to a system cell.
-* Depending on computing resource you have, you can also set CKB to dummy mining mode to save CPU resources. In dummy mode, CKB will randomly sleep for certain amount of time acting as a "mining" time instead of doing expensive calculations.
-
-First you need a dummy folder to store all the configs, assuming we are using `/home/ubuntu/node1`, we can do:
+There's only one required step you need to perform: make sure the miner process is using the correct type hash. To do this, first make sure you are in CKB's repo directory, and use the following command:
 
 ```bash
-$ cp -r <path to ckb>/nodes_template /home/ubuntu/node1
-$ cp <path to mruby-contracts>/build/argv_source_entry /home/ubuntu/node1/spec/cells/
+$ ./target/release/ckb cli type_hash
+0x0da2fe99fe549e082d4ed483c2e968a89ea8d11aabf5d79e5cbf06522de6e674
 ```
 
-In this newly created folder, change the file `default.json` to the following content:
+Note that you might need to adjust this command if:
 
-```
-{
-    "data_dir": "default",
-    "ckb": {
-        "chain": "spec/dev.json"
-    },
-    "logger": {
-        "file": "ckb.log",
-        "filter": "info,chain=debug",
-        "color": true
-    },
-    "rpc": {
-        "listen_addr": "0.0.0.0:8114"
-    },
-    "network": {
-        "listen_addresses": ["/ip4/0.0.0.0/tcp/8115"],
-        "boot_nodes": [],
-        "reserved_nodes": [],
-        "max_peers": 8
-    },
-    "sync": {
-        "verification_level": "Full",
-        "orphan_block_limit": 1024
-    },
-    "pool": {
-        "max_pool_size": 10000,
-        "max_orphan_size": 10000,
-        "max_proposal_size": 10000,
-        "max_cache_size": 1000,
-        "max_pending_size": 10000
-    },
-    "miner": {
-        "new_transactions_threshold": 8,
-        "type_hash": "0x6c5b2cd24ce7cbc16ff368d116294b3c8e5e4f33197900396e9a35d52d8c0f83",
-        "rpc_url": "http://127.0.0.1:8114/",
-        "poll_interval": 5,
-        "max_transactions": 10000,
-        "max_proposals": 10000
-    }
+1. You are building debug version instead of release version
+2. You use a custom config file.
+
+Then locate `default.json` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change.
+
+There're also optional steps here which would help you when you are using the SDK but not required:
+
+### Use Dummy POW mode
+
+By default, CKB is running Cuckoo POW algorithm, depending on the computing power your machine has, this might slow things down.
+
+To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `spec/dev.json` file in your config directory, nagivate to `pow` section, and change the config to the following:
+
+```json
+"pow": {
+  "Dummy": null
 }
 ```
 
-Notice the miner type hash here is the wallet address for the private key `e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3`.
+This way you will be using Dummy POW mode, note that if you have run CKB before, you need to clean data directory (which is `nodes/default` by default) and restart CKB process as well as miner process.
 
-Also, change the file `spec/dev.json` to the following content:
+### Enlarge miner reward
 
-```
-{
-    "name": "ckb",
-    "genesis": {
-        "seal": {
-            "nonce": 0,
-            "proof": [0]
-        },
-        "version": 0,
-        "parent_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "timestamp": 0,
-        "txs_commit": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "txs_proposal": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "difficulty": "0x100",
-        "cellbase_id": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "uncles_hash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    "params": {
-        "initial_block_reward": 50000
-    },
-    "system_cells": [
-        {"path": "cells/verify"},
-        {"path": "cells/always_success"},
-        {"path": "cells/argv_source_entry"}
-    ],
-    "pow": {
-        "Dummy": null
-    }
-}
+By default, CKB issues 50000 capacities to a block, however, since we will need to install a binary which is roughly 1.6MB here, it might take quite a while for CKB to miner enough capacities. So you might want to enlarge miner reward to speedup this process.
+
+To do this, locate `spec/dev.json` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
+
+```json
+"initial_block_reward": 5000000
 ```
 
-And you can try launching CKB node and miner using configs here:
+Note that if you have run CKB before, you need to clean data directory (which is `nodes/default` by default) and restart CKB process as well as miner process.
 
-```bash
-./target/release/ckb -c /home/ubuntu/node1/default.json run
-./target/release/ckb -c /home/ubuntu/node1/default.json miner
+### Custom log config
+
+By default CKB doesn't emit any debug log entries, but when you are playing with the SDK, chances are you will be interested in certain debug logs.
+
+To change this, locate `default.json` file in your config directory, navigate to `logger` section, and adjust `filter` field to the following:
+
+```json
+"filter": "info,chain=debug,script=debug",
 ```
 
-Here release version of ckb is used, though debug version will also work.
-
-You can verify CKB is running by issuing RPC calls:
-
-```bash
-$ curl -d '{"id": 2, "jsonrpc": "2.0", "method":"get_tip_header","params": []}' -H 'content-type:application/json' 'http://localhost:8114'
-{"jsonrpc":"2.0","result":{"raw":{"cellbase_id":"0xd56eab3c0fc9647fa3451a132cd967a4d4f1fc768b8a515ddbd46fb91d5a7a1f","difficulty":"0x20000","number":2,"parent_hash":"0x2726a2938313c5f920b46d224c9ef21e3c9aa3098e340116819680b88f585484","timestamp":1542609053701,"txs_commit":"0xd56eab3c0fc9647fa3451a132cd967a4d4f1fc768b8a515ddbd46fb91d5a7a1f","txs_proposal":"0x0000000000000000000000000000000000000000000000000000000000000000","uncles_count":0,"uncles_hash":"0x0000000000000000000000000000000000000000000000000000000000000000","version":0},"seal":{"nonce":5039870112347525463,"proof":[]}},"id":2}
-```
+Now when you restart your CKB main process, you will have debug log entries from `chain` and `script` modules, which will be quite useful when you play with this SDK.
 
 ## Running SDK
 
@@ -127,18 +75,72 @@ $ git clone https://github.com/nervosnetwork/ckb-demo-ruby-sdk
 $ cd ckb-demo-ruby-sdk
 $ bundle
 $ bundle exec pry -r ./lib/ckb/wallet.rb
-[1] pry(main)>
+[1] pry(main)> api = Ckb::Api.new
+[2] pry(main)> api.get_tip_number
+28
 ```
 
 Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem, which requires manual install of secp256k1 library. Follow the [prerequisite](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) part in the gem to install secp256k1 library locally.
 
 In the Ruby shell, we can start playing with the SDK.
 
-### Basic wallet
+### Install mruby contract
+
+First, we will need the `argv_source_entry` file as mentioned in `Prerequisite` section and preprocess it a bit:
 
 ```bash
-[1] pry(main)> miner = Ckb::Wallet.from_hex(Ckb::Api.new, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
-[2] pry(main)> alice = Ckb::Wallet.from_hex(Ckb::Api.new, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
+$ git clone https://github.com/nervosnetwork/ckb-binary-to-script
+$ cd ckb-binary-to-script
+$ cargo build
+$ ./target/debug/ckb-binary-to-script < <path to argv_source_entry> > <path to processed_argv_source_entry>
+```
+
+Notice this preprocessing step is only needed since Ruby doesn't have a FlatBuffers implementation, for another language, we can build this preprocessing step directly in the SDK.
+
+Then we can install this mruby contract into CKB:
+
+```ruby
+[1] pry(main)> asw = Ckb::AlwaysSuccessWallet.new(api)
+[2] pry(main)> conf = asw.install_mruby_cell!("<path to processed_argv_source_entry>")
+=> {:out_point=>{:hash=>"0x20b849ffe67eb5872eca0d68fff1de193f07354ea903948ade6a3c170d89e282", :index=>0},
+ :cell_hash=>"0x03dba46071a6702b39c1e626f469b4ed9460ed0ad92cf2e21456c34e1e2b04fd"}
+[3] pry(main)> asw.configuration_installed?(conf)
+=> false
+[3] pry(main)> # Wait a while till this becomes true
+[4] pry(main)> asw.configuration_installed?(conf)
+=> true
+```
+
+Now you have the mruby contract installed in CKB, and the relavant configuration in `conf` structure. You can inform `api` object to use this configuration:
+
+```ruby
+[1] pry(main)> api.set_and_save_default_configuration!(conf)
+```
+
+Notice this line also saves the configuration to a local file, so next time when you are opening a `pry` console, you only need to load the save configuration:
+
+```ruby
+[1] pry(main)> api = Ckb::Api.new
+[2] pry(main)> api.load_default_configuration!
+```
+
+Only when you clear the data directory in the CKB node, or switch to a different CKB node, will you need to perform the above installations again.
+
+### Basic wallet
+
+To play with wallets, first we need to add some capacities to a wallet, the easiest way to do this here, is to adjust miner process to mine capacities for an existing wallet. To do this, we should first get the address of the wallet:
+
+```bash
+[1] pry(main)> miner = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> miner.address
+=> "0xe6e587511f51a71c6bf3b7e9b43a2f712c277651fe96a085b1f1a3af5f1361c8"
+```
+
+Then locate `default.json` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change. Wait a while now, you should have balances in the `miner` wallet here.
+
+```bash
+[1] pry(main)> miner = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
 [3] pry(main)> miner.get_balance
 => 100000
 [4] pry(main)> alice.get_balance
@@ -152,17 +154,6 @@ In the Ruby shell, we can start playing with the SDK.
 => 337655
 ```
 
-Notice miner's balance keeps growing with every new block.
-
-If your miner balance is always 0, you might want to run the following command:
-
-```bash
-[8] pry(main)> miner.address
-=> "0x6c5b2cd24ce7cbc16ff368d116294b3c8e5e4f33197900396e9a35d52d8c0f83"
-```
-
-And see if the miner address returned in your environment matches the value here, if not, it means that the mruby contract cell compiled in your environment is not exactly the same as the one we use here. In this case, please edit `type_hash` part in `/home/ubuntu/foo/bar/spec.json` with your value, and restart CKB, now miner should be able to pick up tokens mined in newer blocks.
-
 ### User defined token
 
 We can also create user defined token that's separate from CKB. A new user defined token is made of 2 parts:
@@ -173,8 +164,8 @@ We can also create user defined token that's separate from CKB. A new user defin
 Ruby SDK here provides an easy way to create a token from an existing wallet
 
 ```bash
-[1] pry(main)> admin = Ckb::Wallet.from_hex(Ckb::Api.new, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
-[2] pry(main)> alice = Ckb::Wallet.from_hex(Ckb::Api.new, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
+[1] pry(main)> admin = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
 [3] pry(main)> token_info = admin.created_token_info("Token 1")
 => #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
 [4] pry(main)> # token info represents the meta data for a token
@@ -218,8 +209,8 @@ The following code fulfills this step:
 ### User Defined Token which uses only one cell per wallet:
 
 ```bash
-[1] pry(main)> admin = Ckb::Wallet.from_hex(Ckb::Api.new, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
-[2] pry(main)> alice = Ckb::Wallet.from_hex(Ckb::Api.new, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
+[1] pry(main)> admin = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
 [3] pry(main)> token_info2 = admin.created_token_info("Token 2", account_wallet: true)
 [4] pry(main)> admin_cell_token2 = admin.udt_account_wallet(token_info2)
 [5] pry(main)> alice_cell_token2 = alice.udt_account_wallet(token_info2)
@@ -237,8 +228,8 @@ NOTE: While it might be possible to mix the 2 ways of using user defined token a
 We have also designed a user defined token with a fixed upper cap. For this type of token, the token amount is set when it is initially created, there's no way to create more tokens after that.
 
 ```bash
-[1] pry(main)> admin = Ckb::Wallet.from_hex(Ckb::Api.new, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
-[2] pry(main)> alice = Ckb::Wallet.from_hex(Ckb::Api.new, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
+[1] pry(main)> admin = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
 # Create a genesis UDT cell with 10000 capacity, the UDT has a fixed amount of 10000000.
 # The initial exchange rate is 1 capacity for 5 tokens.
 [3] pry(main)> result = alice.create_fixed_amount_token(10000, 10000000, 5)
