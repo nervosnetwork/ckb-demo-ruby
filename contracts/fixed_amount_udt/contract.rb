@@ -20,7 +20,7 @@ def hex_to_bin(s)
   s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
 end
 
-contract_type_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::CONTRACT)
+contract_type_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::TYPE)
 
 tx = CKB.load_tx
 
@@ -42,7 +42,7 @@ if ARGV.length == 3
     sha3.update(input["hash"])
     sha3.update(input["index"].to_s)
     sha3.update(CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::LOCK))
-    hash = CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::CONTRACT)
+    hash = CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::TYPE)
     if hash == contract_type_hash
       sha3.update(CKB::CellField.new(CKB::Source::INPUT, i, CKB::CellField::DATA).read(0, 8))
     end
@@ -50,7 +50,7 @@ if ARGV.length == 3
   tx["outputs"].each_with_index do |output, i|
     sha3.update(output["capacity"].to_s)
     sha3.update(output["lock"])
-    hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+    hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)
     if hash
       sha3.update(hash)
       if hash == contract_type_hash
@@ -68,7 +68,7 @@ if ARGV.length == 3
 end
 
 input_sum = tx["inputs"].size.times.map do |i|
-  if CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::CONTRACT) == contract_type_hash
+  if CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::TYPE) == contract_type_hash
     CKB::CellField.new(CKB::Source::INPUT, i, CKB::CellField::DATA).read(0, 8).unpack("Q<")[0]
   else
     0
@@ -76,7 +76,7 @@ input_sum = tx["inputs"].size.times.map do |i|
 end.reduce(&:+)
 
 output_sum = tx["outputs"].size.times.map do |i|
-  if CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT) == contract_type_hash
+  if CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE) == contract_type_hash
     CKB::CellField.new(CKB::Source::OUTPUT, i, CKB::CellField::DATA).read(0, 8).unpack("Q<")[0]
   else
     0

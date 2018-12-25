@@ -24,7 +24,7 @@ end
 tx["outputs"].each_with_index do |output, i|
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
-  if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+  if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)
     sha3.update(hash)
   end
 end

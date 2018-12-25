@@ -57,7 +57,7 @@ if ARGV.length >= 4
     tx["outputs"].each_with_index do |output, i|
       sha3.update(output["capacity"].to_s)
       sha3.update(output["lock"])
-      if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+      if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)
         sha3.update(hash)
       end
     end
@@ -67,7 +67,7 @@ if ARGV.length >= 4
     output = tx["outputs"][output_index]
     sha3.update(output["capacity"].to_s)
     sha3.update(output["lock"])
-    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
       sha3.update(hash)
     end
   when SIGHASH_MULTIPLE
@@ -77,7 +77,7 @@ if ARGV.length >= 4
       output = tx["outputs"][output_index]
       sha3.update(output["capacity"].to_s)
       sha3.update(output["lock"])
-      if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+      if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
         sha3.update(hash)
       end
     end
@@ -99,20 +99,20 @@ else
   # This would allow a sender to send tokens to a receiver in one step
   # without needing work from the receiver side.
   current_lock_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::LOCK)
-  current_contract_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::CONTRACT)
+  current_contract_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::TYPE)
   unless current_contract_hash
     raise "Contract is not available in current cell!"
   end
   input_matches = tx["inputs"].length.times.select do |i|
     CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::LOCK) == current_lock_hash &&
-      CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::CONTRACT) == current_contract_hash
+      CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::TYPE) == current_contract_hash
   end
   if input_matches.length > 1
     raise "Invalid input cell number!"
   end
   output_matches = tx["outputs"].length.times.select do |i|
     CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::LOCK) == current_lock_hash &&
-      CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT) == current_contract_hash
+      CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE) == current_contract_hash
   end
   if output_matches.length > 1
     raise "Invalid output cell number!"

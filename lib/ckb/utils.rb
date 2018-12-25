@@ -51,8 +51,8 @@ module Ckb
         outputs.each do |output|
           s.update(output[:capacity].to_s)
           s.update(Ckb::Utils.hex_to_bin(output[:lock]))
-          if output[:contract]
-            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+          if output[:type]
+            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:type])))
           end
         end
 
@@ -77,8 +77,8 @@ module Ckb
         outputs.each do |output|
           s.update(output[:capacity].to_s)
           s.update(Ckb::Utils.hex_to_bin(output[:lock]))
-          if output[:contract]
-            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+          if output[:type]
+            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:type])))
           end
         end
 
@@ -102,8 +102,8 @@ module Ckb
       outputs.each do |output|
         s.update(output[:capacity].to_s)
         s.update(Ckb::Utils.hex_to_bin(output[:lock]))
-        if output[:contract]
-          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:contract])))
+        if output[:type]
+          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:type])))
         end
       end
       key = Secp256k1::PrivateKey.new(privkey: privkey)
@@ -118,16 +118,16 @@ module Ckb
 
     def self.calculate_cell_min_capacity(output)
       capacity = 8 + output[:data].bytesize + Ckb::Utils.hex_to_bin(output[:lock]).bytesize
-      if contract = output[:contract]
+      if type = output[:type]
         capacity += 1
-        capacity += (contract[:args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
-        if contract[:reference]
-          capacity += Ckb::Utils.hex_to_bin(contract[:reference]).bytesize
+        capacity += (type[:args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
+        if type[:reference]
+          capacity += Ckb::Utils.hex_to_bin(type[:reference]).bytesize
         end
-        if contract[:binary]
-          capacity += contract[:binary].bytesize
+        if type[:binary]
+          capacity += type[:binary].bytesize
         end
-        capacity += (contract[:signed_args] || []).map { |arg| arg.bytesize }.reduce(&:+)
+        capacity += (type[:signed_args] || []).map { |arg| arg.bytesize }.reduce(&:+)
       end
       capacity
     end
@@ -159,23 +159,23 @@ module Ckb
         if output[:data].is_a? String
           output[:data] = output[:data].bytes.to_a
         end
-        if output[:contract]
-          output[:contract][:args] = output[:contract][:args].map do |arg|
+        if output[:type]
+          output[:type][:args] = output[:type][:args].map do |arg|
             if arg.is_a? String
               arg.bytes.to_a
             else
               arg
             end
           end
-          output[:contract][:signed_args] = output[:contract][:signed_args].map do |arg|
+          output[:type][:signed_args] = output[:type][:signed_args].map do |arg|
             if arg.is_a? String
               arg.bytes.to_a
             else
               arg
             end
           end
-          if output[:contract][:binary] && output[:contract][:binary].is_a?(String)
-            output[:contract][:binary] = output[:contract][:binary].bytes.to_a
+          if output[:type][:binary] && output[:type][:binary].is_a?(String)
+            output[:type][:binary] = output[:type][:binary].bytes.to_a
           end
         end
       end

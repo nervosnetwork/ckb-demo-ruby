@@ -117,7 +117,7 @@ module Ckb
         capacity: capacity,
         data: [0].pack("Q<"),
         lock: udt_account_wallet(token_info).address,
-        contract: token_info.contract_script_json_object
+        type: token_info.contract_script_json_object
       }
       needed_capacity = Ckb::Utils.calculate_cell_min_capacity(cell)
       if capacity < needed_capacity
@@ -177,7 +177,7 @@ module Ckb
           capacity: capacity,
           data: data,
           lock: info.genesis_unlock_type_hash,
-          contract: info.genesis_contract_script_json_object
+          type: info.genesis_contract_script_json_object
         }
       ]
       if input_capacities > capacity
@@ -189,7 +189,7 @@ module Ckb
       end
 
       s = SHA3::Digest::SHA256.new
-      contract_type_hash_bin = Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(outputs[0][:contract]))
+      contract_type_hash_bin = Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(outputs[0][:type]))
       s.update(contract_type_hash_bin)
       i.inputs.each do |input|
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
@@ -209,7 +209,7 @@ module Ckb
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
       signature_hex = Ckb::Utils.bin_to_hex(signature)
 
-      outputs[0][:contract][:args] = [signature_hex]
+      outputs[0][:type][:args] = [signature_hex]
 
       tx = {
         version: 0,
@@ -262,13 +262,13 @@ module Ckb
           capacity: wallet_cell[:capacity],
           data: [wallet_cell[:amount] + tokens].pack("Q<"),
           lock: wallet_cell[:lock],
-          contract: token_info.contract_script_json_object
+          type: token_info.contract_script_json_object
         },
         {
           capacity: udt_genesis_cell[:capacity],
           data: [udt_genesis_cell[:amount] - tokens].pack("Q<"),
           lock: udt_genesis_cell[:lock],
-          contract: token_info.genesis_contract_script_json_object
+          type: token_info.genesis_contract_script_json_object
         },
         paid_cell
       ]
@@ -311,7 +311,7 @@ module Ckb
           capacity: capacity,
           data: data,
           lock: wallet.address,
-          contract: {
+          type: {
             version: 0,
             args: [
               signature_hex

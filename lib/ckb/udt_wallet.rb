@@ -272,7 +272,7 @@ module Ckb
       i = gather_inputs(amount)
 
       input_capacities = inputs.map do |input|
-        api.get_current_cell(input[:previous_output])[:cell][:capacity]
+        api.get_live_cell(input[:previous_output])[:cell][:capacity]
       end.reduce(&:+)
       output_capacities = outputs.map do |output|
         output[:capacity]
@@ -285,7 +285,7 @@ module Ckb
           capacity: i.capacities,
           data: [i.amounts - amount].pack("Q<"),
           lock: address,
-          contract: token_info.contract_script_json_object
+          type: token_info.contract_script_json_object
         }
         if spare_cell_capacity > MIN_CELL_CAPACITY
           outputs << {
@@ -334,7 +334,7 @@ module Ckb
           capacity: total_capacity,
           data: [total_amount].pack("Q<"),
           lock: wallet.udt_cell_wallet(token_info).address,
-          contract: token_info.contract_script_json_object
+          type: token_info.contract_script_json_object
         }
       ]
       tx = {
@@ -349,16 +349,16 @@ module Ckb
     private
     def calculate_cell_min_capacity(output)
       capacity = 8 + output[:data].size + Ckb::Utils.hex_to_bin(output[:lock]).size
-      if contract = output[:contract]
+      if type = output[:type]
         capacity += 1
-        capacity += (contract[:args] || []).map { |arg| arg.size }.reduce(0, &:+)
-        if contract[:reference]
-          capacity += Ckb::Utils.hex_to_bin(contract[:reference]).size
+        capacity += (type[:args] || []).map { |arg| arg.size }.reduce(0, &:+)
+        if type[:reference]
+          capacity += Ckb::Utils.hex_to_bin(type[:reference]).size
         end
-        if contract[:binary]
-          capacity += contract[:binary].size
+        if type[:binary]
+          capacity += type[:binary].size
         end
-        capacity += (contract[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
+        capacity += (type[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
       end
       capacity
     end
@@ -368,7 +368,7 @@ module Ckb
         capacity: capacity,
         data: [amount].pack("Q<"),
         lock: udt_address,
-        contract: token_info.contract_script_json_object
+        type: token_info.contract_script_json_object
       }
 
       min_capacity = Ckb::Utils.calculate_cell_min_capacity(output)
@@ -453,13 +453,13 @@ module Ckb
           capacity: cell[:capacity],
           data: [cell[:amount] - amount].pack("Q<"),
           lock: address,
-          contract: token_info.contract_script_json_object
+          type: token_info.contract_script_json_object
         },
         {
           capacity: target_cell[:capacity],
           data: [target_cell[:amount] + amount].pack("Q<"),
           lock: target_cell[:lock],
-          contract: token_info.contract_script_json_object
+          type: token_info.contract_script_json_object
         }
       ]
       signed_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(inputs, outputs, privkey)
