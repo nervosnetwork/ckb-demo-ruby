@@ -133,7 +133,7 @@ To play with wallets, first we need to add some capacities to a wallet, the easi
 ```bash
 [1] pry(main)> miner = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> miner.address
-=> "0xe6e587511f51a71c6bf3b7e9b43a2f712c277651fe96a085b1f1a3af5f1361c8"
+=> "0x65c858cb8b93c86643c7a696a6ec8cb5263298b37339991b469a6220cea49385"
 ```
 
 Then locate `default.json` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change. Wait a while now, you should have balances in the `miner` wallet here.
