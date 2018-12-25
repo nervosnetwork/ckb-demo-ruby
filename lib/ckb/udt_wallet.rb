@@ -305,7 +305,7 @@ module Ckb
       self_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: inputs + self_inputs,
         outputs: outputs
       }
@@ -339,7 +339,7 @@ module Ckb
       ]
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(inputs, outputs, privkey),
         outputs: outputs
       }
@@ -473,7 +473,7 @@ module Ckb
       }
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: signed_inputs + [target_input],
         outputs: outputs
       }

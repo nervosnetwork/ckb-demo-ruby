@@ -1,4 +1,5 @@
 require_relative "api"
+require_relative "always_success_wallet"
 require_relative "udt_wallet"
 require_relative "utils"
 
@@ -62,7 +63,7 @@ module Ckb
       end
       {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -96,7 +97,7 @@ module Ckb
 
       {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_multiple_anyonecanpay_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -136,7 +137,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -212,7 +213,7 @@ module Ckb
 
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -282,7 +283,7 @@ module Ckb
       signed_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
         outputs: outputs
       }
@@ -333,7 +334,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_script_out_point],
+        deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
