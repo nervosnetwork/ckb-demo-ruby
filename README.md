@@ -128,29 +128,33 @@ Only when you clear the data directory in the CKB node, or switch to a different
 
 ### Basic wallet
 
-To play with wallets, first we need to add some capacities to a wallet, the easiest way to do this here, is to adjust miner process to mine capacities for an existing wallet. To do this, we should first get the address of the wallet:
+To play with wallets, first we need to add some capacities to a wallet:
 
 ```bash
-[1] pry(main)> miner = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
-[2] pry(main)> miner.address
-=> "0xe6e587511f51a71c6bf3b7e9b43a2f712c277651fe96a085b1f1a3af5f1361c8"
+[1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[2] pry(main)> bob.get_balance
+=> 0
+[3] pry(main)> asw.send_capacity(bob.address, 100000)
+[4] pry(main)> # wait a while
+[5] pry(main)> bob.get_balance
+=> 100000
 ```
 
-Then locate `default.json` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change. Wait a while now, you should have balances in the `miner` wallet here.
+Now we can perform normal transfers between wallets:
 
 ```bash
-[1] pry(main)> miner = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> miner.get_balance
+[3] pry(main)> bob.get_balance
 => 100000
 [4] pry(main)> alice.get_balance
 => 0
-[5] pry(main)> miner.send_capacity(alice.address, 12345)
+[5] pry(main)> bob.send_capacity(alice.address, 12345)
 => "0xd7abc1407eb07d334fea86ef0e9b12b2273833137327c2a53f2d8ba1be1e4d85"
 [6] pry(main)> # wait for some time
 [7] pry(main)> alice.get_balance
 => 12345
-[8] pry(main)> miner.get_balance
+[8] pry(main)> bob.get_balance
 => 337655
 ```
 
@@ -164,24 +168,24 @@ We can also create user defined token that's separate from CKB. A new user defin
 Ruby SDK here provides an easy way to create a token from an existing wallet
 
 ```bash
-[1] pry(main)> admin = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> token_info = admin.created_token_info("Token 1")
+[3] pry(main)> token_info = bob.created_token_info("Token 1")
 => #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
 [4] pry(main)> # token info represents the meta data for a token
 [5] pry(main)> # we can assemble a wallet for user defined token with token info structure
-[6] pry(main)> admin_token1 = admin.udt_wallet(token_info)
+[6] pry(main)> bob_token1 = bob.udt_wallet(token_info)
 [7] pry(main)> alice_token1 = alice.udt_wallet(token_info)
 ```
 
 Now we can create this token from a user with CKB capacities(since the cell used to hold the tokens will take some capacity):
 
 ```bash
-[9] pry(main)> admin.get_balance
+[9] pry(main)> bob.get_balance
 => 3737655
 [10] pry(main)> # here we are creating 10000000 tokens for "Token 1", we put those tokens in a cell with 10000 CKB capacity
-[11] pry(main)> admin.create_udt_token(10000, "Token 1", 10000000)
-[12] pry(main)> admin_token1.get_balance
+[11] pry(main)> bob.create_udt_token(10000, "Token 1", 10000000)
+[12] pry(main)> bob_token1.get_balance
 => 10000000
 [13] pry(main)> alice_token1.get_balance
 => 0
@@ -190,7 +194,7 @@ Now we can create this token from a user with CKB capacities(since the cell used
 Now that the token is created, we can implement a token transfer process between CKB capacities and user defined tokens. Specifically, we are demostrating the following process:
 
 * Alice signs signatures providing a certain number of CKB capacities in exchange of some user defined tokens. Notice CKB contracts here can ensure that no one can spend alice's signed capacities without providing tokens for Alice
-* Then admin provides user defined tokens for Alice in exchange for Alice's capacities.
+* Then bob provides user defined tokens for Alice in exchange for Alice's capacities.
 
 Notice CKB is flexible to implement many other types of transaction for this problem, here we are simply listing one solution here. You are not limited to only this solution.
 
@@ -199,8 +203,8 @@ The following code fulfills this step:
 ```bash
 [15] pry(main)> # Alice is paying 10999 CKB capacities for 12345 token 1, alice will also spare 3000 CKB capacities to hold the returned token 1.
 [15] pry(main)> partial_tx = alice_token1.generate_partial_tx_for_udt_cell(12345, 3000, 10999)
-[18] pry(main)> admin_token1.send_amount(12345, partial_tx)
-[19] pry(main)> admin_token1.get_balance
+[18] pry(main)> bob_token1.send_amount(12345, partial_tx)
+[19] pry(main)> bob_token1.get_balance
 => 9987655
 [20] pry(main)> alice_token1.get_balance
 => 12345
@@ -209,15 +213,15 @@ The following code fulfills this step:
 ### User Defined Token which uses only one cell per wallet:
 
 ```bash
-[1] pry(main)> admin = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> token_info2 = admin.created_token_info("Token 2", account_wallet: true)
-[4] pry(main)> admin_cell_token2 = admin.udt_account_wallet(token_info2)
+[3] pry(main)> token_info2 = bob.created_token_info("Token 2", account_wallet: true)
+[4] pry(main)> bob_cell_token2 = bob.udt_account_wallet(token_info2)
 [5] pry(main)> alice_cell_token2 = alice.udt_account_wallet(token_info2)
-[6] pry(main)> admin.create_udt_token(10000, "Token 2", 10000000, account_wallet: true)
+[6] pry(main)> bob.create_udt_token(10000, "Token 2", 10000000, account_wallet: true)
 [7] pry(main)> alice.create_udt_account_wallet_cell(3000, token_info2)
-[8] pry(main)> admin_cell_token2.send_tokens(12345, alice_cell_token2)
-[9] pry(main)> admin_cell_token2.get_balance
+[8] pry(main)> bob_cell_token2.send_tokens(12345, alice_cell_token2)
+[9] pry(main)> bob_cell_token2.get_balance
 [10] pry(main)> alice_cell_token2.get_balance
 ```
 
@@ -228,7 +232,7 @@ NOTE: While it might be possible to mix the 2 ways of using user defined token a
 We have also designed a user defined token with a fixed upper cap. For this type of token, the token amount is set when it is initially created, there's no way to create more tokens after that.
 
 ```bash
-[1] pry(main)> admin = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
+[1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
 # Create a genesis UDT cell with 10000 capacity, the UDT has a fixed amount of 10000000.
 # The initial exchange rate is 1 capacity for 5 tokens.
