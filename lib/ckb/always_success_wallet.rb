@@ -9,6 +9,33 @@ module Ckb
       @api = api
     end
 
+    def send_capacity(target_address, capacity)
+      i = gather_inputs(capacity, MIN_CELL_CAPACITY)
+      input_capacities = i.capacities
+
+      outputs = [
+        {
+          capacity: capacity,
+          data: [],
+          lock: target_address
+        }
+      ]
+      if input_capacities > capacity
+        outputs << {
+          capacity: input_capacities - capacity,
+          data: [],
+          lock: self.address
+        }
+      end
+      tx = {
+        version: 0,
+        deps: [api.always_success_script_out_point],
+        inputs: i.inputs,
+        outputs: outputs
+      }
+      api.send_transaction(tx)
+    end
+
     def install_mruby_cell!(processed_mruby_cell_filename)
       data = File.read(processed_mruby_cell_filename)
       cell_hash = Ckb::Utils.bin_to_prefix_hex(SHA3::Digest::SHA256.digest(data))
