@@ -29,7 +29,7 @@ ARGV[2].split(",").each do |output_index|
   output = tx["outputs"][output_index]
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
-  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
     sha3.update(hash)
   end
 end

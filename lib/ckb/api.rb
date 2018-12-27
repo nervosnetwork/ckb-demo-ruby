@@ -100,13 +100,13 @@ module Ckb
       rpc_request("get_transaction", params: [tx_hash_hex])[:result]
     end
 
-    def get_current_cell(out_point)
+    def get_live_cell(out_point)
       # This way we can detect type errors early instead of weird RPC errors
       normalized_out_point = {
         hash: out_point[:hash],
         index: out_point[:index]
       }
-      rpc_request("get_current_cell", params: [normalized_out_point])[:result]
+      rpc_request("get_live_cell", params: [normalized_out_point])[:result]
     end
 
     def send_transaction(transaction)

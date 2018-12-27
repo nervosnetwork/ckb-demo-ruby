@@ -58,7 +58,7 @@ if ARGV.length >= 5
     tx["outputs"].each_with_index do |output, i|
       sha3.update(output["capacity"].to_s)
       sha3.update(output["lock"])
-      if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+      if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)
         sha3.update(hash)
       end
     end
@@ -68,7 +68,7 @@ if ARGV.length >= 5
     output = tx["outputs"][output_index]
     sha3.update(output["capacity"].to_s)
     sha3.update(output["lock"])
-    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
       sha3.update(hash)
     end
   when SIGHASH_MULTIPLE
@@ -78,7 +78,7 @@ if ARGV.length >= 5
       output = tx["outputs"][output_index]
       sha3.update(output["capacity"].to_s)
       sha3.update(output["lock"])
-      if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+      if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
         sha3.update(hash)
       end
     end
@@ -94,12 +94,12 @@ if ARGV.length >= 5
   return
 end
 
-contract_type_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::CONTRACT)
+contract_type_hash = CKB.load_script_hash(0, CKB::Source::CURRENT, CKB::Category::TYPE)
 
 # First, we test there's at least one output that has current UDT contract, so the
 # cell contract validator code can take place
 has_udt_output = tx["outputs"].length.times.any? do |i|
-  CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT) == contract_type_hash
+  CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE) == contract_type_hash
 end
 unless has_udt_output
   raise "There must at least be one contract output!"
@@ -111,11 +111,11 @@ current_input_capacity = CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellFi
 
 current_output_index = tx["outputs"].length.times.find do |i|
   lock = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::LOCK)
-  contract = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+  type = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)
   capacity = tx["outputs"][i]["capacity"]
 
   lock == current_input_lock &&
-    contract == contract_type_hash &&
+    type == contract_type_hash &&
     capacity == current_input_capacity
 end
 unless current_output_index
@@ -133,7 +133,7 @@ end
 if CKB::CellField.new(CKB::Source::OUTPUT, paid_output_index, CKB::CellField::DATA).length > 0
   raise "Not an empty cell!"
 end
-if CKB::CellField.new(CKB::Source::OUTPUT, paid_output_index, CKB::CellField::CONTRACT).exists?
+if CKB::CellField.new(CKB::Source::OUTPUT, paid_output_index, CKB::CellField::TYPE).exists?
   raise "Not an empty cell!"
 end
 input_tokens = CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::DATA).read(0, 8).unpack("Q<")[0]

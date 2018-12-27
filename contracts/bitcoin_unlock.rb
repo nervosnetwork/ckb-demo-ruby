@@ -52,7 +52,7 @@ when SIGHASH_ALL
   tx["outputs"].each_with_index do |output, i|
     sha3.update(output["capacity"].to_s)
     sha3.update(output["lock"])
-    if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+    if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)
       sha3.update(hash)
     end
   end
@@ -62,7 +62,7 @@ when SIGHASH_SINGLE
   output = tx["outputs"][output_index]
   sha3.update(output["capacity"].to_s)
   sha3.update(output["lock"])
-  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
     sha3.update(hash)
   end
 when SIGHASH_MULTIPLE
@@ -72,7 +72,7 @@ when SIGHASH_MULTIPLE
     output = tx["outputs"][output_index]
     sha3.update(output["capacity"].to_s)
     sha3.update(output["lock"])
-    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::CONTRACT)
+    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)
       sha3.update(hash)
     end
   end

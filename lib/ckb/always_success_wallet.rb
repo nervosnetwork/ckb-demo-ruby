@@ -75,7 +75,7 @@ module Ckb
     end
 
     def configuration_installed?(configuration)
-      cell_with_status = api.get_current_cell(configuration[:out_point])
+      cell_with_status = api.get_live_cell(configuration[:out_point])
       return false if cell_with_status[:status] != "current"
       returned_cell_hash = Ckb::Utils.bin_to_prefix_hex(
         SHA3::Digest::SHA256.digest(cell_with_status[:cell][:data].pack("c*")))
