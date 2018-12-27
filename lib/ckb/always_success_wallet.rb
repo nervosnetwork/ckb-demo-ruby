@@ -16,14 +16,14 @@ module Ckb
       outputs = [
         {
           capacity: capacity,
-          data: [],
+          data: "",
           lock: target_address
         }
       ]
       if input_capacities > capacity
         outputs << {
           capacity: input_capacities - capacity,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
@@ -53,7 +53,7 @@ module Ckb
       if input_capacities > output[:capacity]
         outputs << {
           capacity: input_capacities - output[:capacity],
-          data: [],
+          data: "",
           lock: address
         }
       end
@@ -76,7 +76,7 @@ module Ckb
 
     def configuration_installed?(configuration)
       cell_with_status = api.get_live_cell(configuration[:out_point])
-      return false if cell_with_status[:status] != "current"
+      return false if cell_with_status[:status] != "live"
       returned_cell_hash = Ckb::Utils.bin_to_prefix_hex(
         SHA3::Digest::SHA256.digest(cell_with_status[:cell][:data].pack("c*")))
       unless returned_cell_hash == configuration[:cell_hash]

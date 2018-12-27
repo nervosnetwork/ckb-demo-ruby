@@ -155,7 +155,7 @@ Now we can perform normal transfers between wallets:
 [7] pry(main)> alice.get_balance
 => 12345
 [8] pry(main)> bob.get_balance
-=> 337655
+=> 87655
 ```
 
 ### User defined token
@@ -182,7 +182,7 @@ Now we can create this token from a user with CKB capacities(since the cell used
 
 ```bash
 [9] pry(main)> bob.get_balance
-=> 3737655
+=> 87655
 [10] pry(main)> # here we are creating 10000000 tokens for "Token 1", we put those tokens in a cell with 10000 CKB capacity
 [11] pry(main)> bob.create_udt_token(10000, "Token 1", 10000000)
 [12] pry(main)> bob_token1.get_balance
@@ -201,8 +201,8 @@ Notice CKB is flexible to implement many other types of transaction for this pro
 The following code fulfills this step:
 
 ```bash
-[15] pry(main)> # Alice is paying 10999 CKB capacities for 12345 token 1, alice will also spare 3000 CKB capacities to hold the returned token 1.
-[15] pry(main)> partial_tx = alice_token1.generate_partial_tx_for_udt_cell(12345, 3000, 10999)
+[15] pry(main)> # Alice is paying 10999 CKB capacities for 12345 token 1, alice will also spare 3010 CKB capacities to hold the returned token 1.
+[15] pry(main)> partial_tx = alice_token1.generate_partial_tx_for_udt_cell(12345, 3010, 10999)
 [18] pry(main)> bob_token1.send_amount(12345, partial_tx)
 [19] pry(main)> bob_token1.get_balance
 => 9987655
@@ -219,10 +219,12 @@ The following code fulfills this step:
 [4] pry(main)> bob_cell_token2 = bob.udt_account_wallet(token_info2)
 [5] pry(main)> alice_cell_token2 = alice.udt_account_wallet(token_info2)
 [6] pry(main)> bob.create_udt_token(10000, "Token 2", 10000000, account_wallet: true)
-[7] pry(main)> alice.create_udt_account_wallet_cell(3000, token_info2)
+[7] pry(main)> alice.create_udt_account_wallet_cell(3010, token_info2)
 [8] pry(main)> bob_cell_token2.send_tokens(12345, alice_cell_token2)
 [9] pry(main)> bob_cell_token2.get_balance
+=> 9987655
 [10] pry(main)> alice_cell_token2.get_balance
+=> 12345
 ```
 
 NOTE: While it might be possible to mix the 2 ways of using user defined token above in one token, we don't really recommend that since it could be the source of a lot of confusions.

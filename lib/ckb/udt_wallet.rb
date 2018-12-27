@@ -290,14 +290,14 @@ module Ckb
         if spare_cell_capacity > MIN_CELL_CAPACITY
           outputs << {
             capacity: spare_cell_capacity,
-            data: [],
+            data: "",
             lock: wallet.address
           }
         end
       else
         outputs << {
           capacity: i.capacities + spare_cell_capacity,
-          data: [],
+          data: "",
           lock: wallet.address
         }
       end
