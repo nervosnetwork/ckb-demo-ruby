@@ -290,14 +290,14 @@ module Ckb
         if spare_cell_capacity > MIN_CELL_CAPACITY
           outputs << {
             capacity: spare_cell_capacity,
-            data: [],
+            data: "",
             lock: wallet.address
           }
         end
       else
         outputs << {
           capacity: i.capacities + spare_cell_capacity,
-          data: [],
+          data: "",
           lock: wallet.address
         }
       end
@@ -347,22 +347,6 @@ module Ckb
     end
 
     private
-    def calculate_cell_min_capacity(output)
-      capacity = 8 + output[:data].size + Ckb::Utils.hex_to_bin(output[:lock]).size
-      if type = output[:type]
-        capacity += 1
-        capacity += (type[:args] || []).map { |arg| arg.size }.reduce(0, &:+)
-        if type[:reference]
-          capacity += Ckb::Utils.hex_to_bin(type[:reference]).size
-        end
-        if type[:binary]
-          capacity += type[:binary].size
-        end
-        capacity += (type[:signed_args] || []).map { |arg| arg.size }.reduce(&:+)
-      end
-      capacity
-    end
-
     def generate_output(udt_address, amount, capacity)
       output = {
         capacity: capacity,

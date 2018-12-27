@@ -50,14 +50,14 @@ module Ckb
       outputs = [
         {
           capacity: capacity,
-          data: [],
+          data: "",
           lock: target_address
         }
       ]
       if input_capacities > capacity
         outputs << {
           capacity: input_capacities - capacity,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
@@ -90,7 +90,7 @@ module Ckb
       if input_capacities > capacity_to_pay
         outputs << {
           capacity: input_capacities - capacity_to_pay,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
@@ -131,7 +131,7 @@ module Ckb
       if input_capacities > capacity
         outputs << {
           capacity: input_capacities - capacity,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
@@ -183,7 +183,7 @@ module Ckb
       if input_capacities > capacity
         outputs << {
           capacity: input_capacities - capacity,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
@@ -225,7 +225,7 @@ module Ckb
       paid_capacity = (tokens + token_info.rate - 1) / token_info.rate
       paid_cell = {
         capacity: paid_capacity,
-        data: [],
+        data: "",
         lock: token_info.lock_hash
       }
       needed_capacity = Ckb::Utils.calculate_cell_min_capacity(paid_cell)
@@ -275,7 +275,7 @@ module Ckb
       if input_capacities > paid_capacity
         outputs << {
           capacity: input_capacities - paid_capacity,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
@@ -328,7 +328,7 @@ module Ckb
       if input_capacities > capacity
         outputs << {
           capacity: input_capacities - capacity,
-          data: [],
+          data: "",
           lock: self.address
         }
       end
