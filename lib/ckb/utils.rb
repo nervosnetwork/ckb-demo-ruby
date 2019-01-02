@@ -132,50 +132,33 @@ module Ckb
       capacity
     end
 
-    # In Ruby, bytes are represented using String, but Rust uses Vec<u8>
-    # to represent bytes, which needs raw array in JSON part, hence we
+    # In Ruby, bytes are represented using String, since JSON has no native byte arrays,
+    # CKB convention bytes passed with a “0x” prefix hex encoding, hence we
     # have to do type conversions here.
     def self.normalize_tx_for_json!(transaction)
       transaction[:inputs].each do |input|
         input[:unlock][:args] = input[:unlock][:args].map do |arg|
-          if arg.is_a? String
-            arg.bytes.to_a
-          else
-            arg
-          end
+          Ckb::Utils.bin_to_prefix_hex(arg)
         end
         input[:unlock][:signed_args] = input[:unlock][:signed_args].map do |arg|
-          if arg.is_a? String
-            arg.bytes.to_a
-          else
-            arg
-          end
+          Ckb::Utils.bin_to_prefix_hex(arg)
         end
-        if input[:binary] && input[:binary].is_a?(String)
-          input[:binary] = input[:binary].bytes.to_a
+        if input[:binary]
+          input[:binary] = Ckb::Utils.bin_to_prefix_hex(input[:binary])
         end
       end
       transaction[:outputs].each do |output|
-        if output[:data].is_a? String
-          output[:data] = output[:data].bytes.to_a
-        end
+        output[:data] = Ckb::Utils.bin_to_prefix_hex(output[:data])
+
         if output[:type]
           output[:type][:args] = output[:type][:args].map do |arg|
-            if arg.is_a? String
-              arg.bytes.to_a
-            else
-              arg
-            end
+            Ckb::Utils.bin_to_prefix_hex(arg)
           end
           output[:type][:signed_args] = output[:type][:signed_args].map do |arg|
-            if arg.is_a? String
-              arg.bytes.to_a
-            else
-              arg
-            end
+            Ckb::Utils.bin_to_prefix_hex(arg)
           end
-          if output[:type][:binary] && output[:type][:binary].is_a?(String)
-            output[:type][:binary] = output[:type][:binary].bytes.to_a
+          if output[:type][:binary]
+            output[:type][:binary] = Ckb::Utils.bin_to_prefix_hex(output[:type][:binary])
           end
         end
       end
