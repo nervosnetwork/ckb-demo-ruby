@@ -78,7 +78,7 @@ module Ckb
       cell_with_status = api.get_live_cell(configuration[:out_point])
       return false if cell_with_status[:status] != "live"
       returned_cell_hash = Ckb::Utils.bin_to_prefix_hex(
-        SHA3::Digest::SHA256.digest(cell_with_status[:cell][:data].pack("c*")))
+        SHA3::Digest::SHA256.digest(Ckb::Utils.hex_to_bin(cell_with_status[:cell][:data])))
       unless returned_cell_hash == configuration[:cell_hash]
         raise "Cell hash doesn't match, something weird is happening!"
       end

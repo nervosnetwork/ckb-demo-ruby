@@ -38,14 +38,15 @@ module Ckb
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
     def always_success_script_out_point
       {
-        hash: genesis_block[:transactions][0][:hash],
+        hash: genesis_block[:commit_transactions][0][:hash],
         index: 0
       }
     end
 
     def always_success_cell_hash
       hash_bin = SHA3::Digest::SHA256.digest(
-        genesis_block[:transactions][0][:transaction][:outputs][0][:data].pack("c*"))
+        Ckb::Utils.hex_to_bin(genesis_block[:commit_transactions][0][:outputs][0][:data])
+      )
       Ckb::Utils.bin_to_prefix_hex(hash_bin)
     end
 
@@ -88,7 +89,7 @@ module Ckb
     end
 
     def get_tip_number
-      rpc_request("get_tip_header")[:result][:raw][:number]
+      rpc_request("get_tip_header")[:result][:number]
     end
 
     def get_cells_by_type_hash(hash_hex, from, to)
