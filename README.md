@@ -86,13 +86,13 @@ In the Ruby shell, we can start playing with the SDK.
 
 ### Install mruby contract
 
-First, we will need the `argv_source_entry` file as mentioned in `Prerequisite` section and preprocess it a bit:
+First, we will need the `argv_source_entry` file as mentioned in `Prerequisite` section and preprocess it a bit. The following steps assume that the file and the processed file are all in directory `/path/to/`:
 
 ```bash
 $ git clone https://github.com/nervosnetwork/ckb-binary-to-script
 $ cd ckb-binary-to-script
 $ cargo build
-$ ./target/debug/ckb-binary-to-script < <path to argv_source_entry> > <path to processed_argv_source_entry>
+$ ./target/debug/ckb-binary-to-script < /path/to/argv_source_entry > /path/to/processed_argv_source_entry
 ```
 
 Notice this preprocessing step is only needed since Ruby doesn't have a FlatBuffers implementation, for another language, we can build this preprocessing step directly in the SDK.
@@ -101,7 +101,7 @@ Then we can install this mruby contract into CKB:
 
 ```ruby
 [1] pry(main)> asw = Ckb::AlwaysSuccessWallet.new(api)
-[2] pry(main)> conf = asw.install_mruby_cell!("<path to processed_argv_source_entry>")
+[2] pry(main)> conf = asw.install_mruby_cell!("/path/to/processed_argv_source_entry")
 => {:out_point=>{:hash=>"0x20b849ffe67eb5872eca0d68fff1de193f07354ea903948ade6a3c170d89e282", :index=>0},
  :cell_hash=>"0x03dba46071a6702b39c1e626f469b4ed9460ed0ad92cf2e21456c34e1e2b04fd"}
 [3] pry(main)> asw.configuration_installed?(conf)
