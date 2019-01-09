@@ -373,7 +373,7 @@ module Ckb
         end
       end
       if input_capacities < capacity
-        raise "Not enouch capacity!"
+        raise "Not enough capacity!"
       end
       OpenStruct.new(inputs: inputs, capacities: input_capacities)
     end
