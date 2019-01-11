@@ -94,7 +94,7 @@ module Ckb
         cells = api.get_cells_by_type_hash(hash, current_from, current_to)
         cells_with_data = cells.map do |cell|
           tx = api.get_transaction(cell[:out_point][:hash])
-          amount = Ckb::Utils.hex_to_bin(tx[:transaction][:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
+          amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
           cell.merge(amount: amount)
         end
         results.concat(cells_with_data)
@@ -239,7 +239,7 @@ module Ckb
           cell[:lock] == address
         end.map do |cell|
           tx = get_transaction(cell[:out_point][:hash])
-          amount = Ckb::Utils.hex_to_bin(tx[:transaction][:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
+          amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
           cell.merge(amount: amount)
         end
         results.concat(cells_with_data)
