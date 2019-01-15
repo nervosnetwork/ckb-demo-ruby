@@ -29,7 +29,7 @@ pubkey = ARGV[0]
 signature = ARGV[1]
 
 def hex_to_bin(s)
-  s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
+  [s].pack("H*")
 end
 
 unless Secp256k1.verify(hex_to_bin(pubkey), hex_to_bin(signature), hash)

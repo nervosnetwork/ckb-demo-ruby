@@ -26,11 +26,11 @@ end
 hash = sha3.final
 
 def hex_to_bin(s)
-  s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
+  [s].pack("H*")
 end
 
 def bin_to_hex(s)
-  s.bytes.map { |b| b.to_s(16).rjust(2, "0") }.join
+  s.unpack1("H*")
 end
 
 seckey = hex_to_bin(ARGV[0])
