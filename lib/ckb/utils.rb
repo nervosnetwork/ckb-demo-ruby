@@ -9,11 +9,11 @@ module Ckb
       if s.start_with?("0x")
         s = s[2..-1]
       end
-      s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
+      [s].pack("H*")
     end
 
     def self.bin_to_hex(s)
-      s.bytes.map { |b| b.to_s(16).rjust(2, "0") }.join
+      s.unpack1("H*")
     end
 
     def self.bin_to_prefix_hex(s)

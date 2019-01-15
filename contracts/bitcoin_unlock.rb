@@ -22,7 +22,7 @@ def hex_to_bin(s)
   if s.start_with?("0x")
     s = s[2..-1]
   end
-  s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join
+  [s].pack("H*")
 end
 
 
