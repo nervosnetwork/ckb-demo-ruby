@@ -5,11 +5,11 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
-  UNLOCK_SCRIPT = File.read(File.expand_path("../../../contracts/udt/unlock.rb", __FILE__))
-  UNLOCK_SINGLE_CELL_SCRIPT = File.read(File.expand_path("../../../contracts/udt/unlock_single_cell.rb", __FILE__))
-  CONTRACT_SCRIPT = File.read(File.expand_path("../../../contracts/udt/contract.rb", __FILE__))
-  FIXED_AMOUNT_GENESIS_UNLOCK_SCRIPT = File.read(File.expand_path("../../../contracts/fixed_amount_udt/genesis_unlock.rb", __FILE__))
-  FIXED_AMOUNT_CONTRACT_SCRIPT = File.read(File.expand_path("../../../contracts/fixed_amount_udt/contract.rb", __FILE__))
+  UNLOCK_SCRIPT = File.read(File.expand_path("../../../scripts/udt/unlock.rb", __FILE__))
+  UNLOCK_SINGLE_CELL_SCRIPT = File.read(File.expand_path("../../../scripts/udt/unlock_single_cell.rb", __FILE__))
+  CONTRACT_SCRIPT = File.read(File.expand_path("../../../scripts/udt/contract.rb", __FILE__))
+  FIXED_AMOUNT_GENESIS_UNLOCK_SCRIPT = File.read(File.expand_path("../../../scripts/fixed_amount_udt/genesis_unlock.rb", __FILE__))
+  FIXED_AMOUNT_CONTRACT_SCRIPT = File.read(File.expand_path("../../../scripts/fixed_amount_udt/contract.rb", __FILE__))
 
   class TokenInfo
     attr_reader :api

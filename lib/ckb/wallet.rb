@@ -7,7 +7,7 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
-  VERIFY_SCRIPT = File.read(File.expand_path("../../../contracts/bitcoin_unlock.rb", __FILE__))
+  VERIFY_SCRIPT = File.read(File.expand_path("../../../scripts/bitcoin_unlock.rb", __FILE__))
 
   class Wallet
     attr_reader :api

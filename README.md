@@ -71,7 +71,7 @@ Now when you restart your CKB main process, you will have debug log entries from
 Now we can setup the Ruby SDK:
 
 ```bash
-$ git clone https://github.com/nervosnetwork/ckb-demo-ruby-sdk
+$ git clone --recursive https://github.com/nervosnetwork/ckb-demo-ruby-sdk
 $ cd ckb-demo-ruby-sdk
 $ bundle
 $ bundle exec pry -r ./lib/ckb/wallet.rb
