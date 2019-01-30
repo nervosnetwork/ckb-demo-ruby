@@ -36,7 +36,7 @@ module Ckb
     end
 
     # Returns a default secp256k1-sha3 input unlock contract included in CKB
-    def always_success_script_out_point
+    def always_success_out_point
       {
         hash: genesis_block[:commit_transactions][0][:hash],
         index: 0
