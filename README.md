@@ -8,6 +8,8 @@ You will also need [mruby-contracts](https://github.com/nervosnetwork/mruby-cont
 
 If you don't want to build mruby-contracts yourself, we have a prebuilt binary at [here](https://github.com/nervosnetwork/binary/raw/master/contracts/mruby/argv_source_entry).
 
+Finally you will need Ruby 2.4+ to run this SDK.
+
 ## Configure CKB
 
 First, follow the [README](https://github.com/nervosnetwork/ckb/blob/develop/README.md) steps to make sure CKB is up and running.
