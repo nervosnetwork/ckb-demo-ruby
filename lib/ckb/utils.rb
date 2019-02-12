@@ -13,7 +13,7 @@ module Ckb
     end
 
     def self.bin_to_hex(s)
-      s.unpack1("H*")
+      s.unpack("H*")[0]
     end
 
     def self.bin_to_prefix_hex(s)
