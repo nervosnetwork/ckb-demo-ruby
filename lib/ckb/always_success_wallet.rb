@@ -29,7 +29,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.always_success_script_out_point],
+        deps: [api.always_success_out_point],
         inputs: i.inputs,
         outputs: outputs
       }
@@ -60,7 +60,7 @@ module Ckb
 
       tx = {
         version: 0,
-        deps: [api.always_success_script_out_point],
+        deps: [api.always_success_out_point],
         inputs: i.inputs,
         outputs: outputs
       }
