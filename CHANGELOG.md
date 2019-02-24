@@ -1,7 +1,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [0.6.0](https://github.com/nervosnetwork/ckb-demo-ruby-sdk/compare/v0.5.0...rc/v0.6.0) (2019-02-15)
+# [0.6.0](https://github.com/nervosnetwork/ckb-demo-ruby-sdk/compare/v0.5.0...rc/v0.6.0) (2019-02-25)
 
 ### Features
 
