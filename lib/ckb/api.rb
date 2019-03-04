@@ -88,9 +88,15 @@ module Ckb
       rpc_request("get_block", params: [block_hash_hex])[:result]
     end
 
-    def get_tip_number
-      rpc_request("get_tip_header")[:result][:number]
+    def get_tip_header
+      rpc_request("get_tip_header")[:result]
     end
+
+    def get_tip_block_number
+      rpc_request("get_tip_block_number")[:result]
+    end
+
+    alias get_tip_number get_tip_block_number
 
     def get_cells_by_type_hash(hash_hex, from, to)
       params = [hash_hex, from, to]
@@ -113,6 +119,19 @@ module Ckb
     def send_transaction(transaction)
       transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
       rpc_request("send_transaction", params: [transaction])[:result]
+    end
+
+    def local_node_info
+      rpc_request("local_node_info")[:result]
+    end
+
+    def trace_transaction(transaction)
+      transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
+      rpc_request("trace_transaction", params: [transaction])[:result]
+    end
+
+    def get_transaction_trace(hash)
+      rpc_request("get_transaction_trace", params: [hash])[:result]
     end
   end
 end
