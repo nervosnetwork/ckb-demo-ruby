@@ -96,9 +96,7 @@ module Ckb
       rpc_request("get_tip_block_number")[:result]
     end
 
-    def get_tip_number
-      rpc_request("get_tip_header")[:result][:number]
-    end
+    alias get_tip_number get_tip_block_number
 
     def get_cells_by_type_hash(hash_hex, from, to)
       params = [hash_hex, from, to]
