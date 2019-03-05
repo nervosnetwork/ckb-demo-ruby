@@ -4,6 +4,7 @@ class Ckb::ApiTest < Minitest::Test
   attr_reader :api, :type_hash
 
   def setup
+    skip("not test rpc") if ENV["SKIP_RPC_TESTS"]
     @api = Ckb::Api.new
     @type_hash = "0x0da2fe99fe549e082d4ed483c2e968a89ea8d11aabf5d79e5cbf06522de6e674"
   end
