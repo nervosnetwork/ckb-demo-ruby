@@ -127,7 +127,7 @@ module Ckb
         if type[:binary]
           capacity += type[:binary].bytesize
         end
-        capacity += (type[:signed_args] || []).map { |arg| arg.bytesize }.reduce(&:+)
+        capacity += (type[:signed_args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
       end
       capacity
     end
@@ -143,8 +143,8 @@ module Ckb
         input[:unlock][:signed_args] = input[:unlock][:signed_args].map do |arg|
           Ckb::Utils.bin_to_prefix_hex(arg)
         end
-        if input[:binary]
-          input[:binary] = Ckb::Utils.bin_to_prefix_hex(input[:binary])
+        if input[:unlock][:binary]
+          input[:unlock][:binary] = Ckb::Utils.bin_to_prefix_hex(input[:unlock][:binary])
         end
       end
       transaction[:outputs].each do |output|
