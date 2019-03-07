@@ -8,38 +8,52 @@ Below is an example of CKB's transaction:
 
 ![Transaction Model](/docs/images/tx.png)
 
-Note that to focus on explaining script model, certain fields in a cell(such as cell data) are omitted here for simplicity reason.
+> Note that to focus on explaining script model, certain fields in a cell (such as `data`) are not mentioned here for the simplicity.
 
 In CKB, each cell has 2 associated scripts:
 
-* A required lock script, note cell usually only keeps the hash of the lock script, we will explain this later. This is used to verify *who* can unlock the cell, for example, we can put secp256k1 verification in lock script to verify a signature is indeed signed by the cell owner, and only unlock the cell when the signature is valid.
-* An optional type script. This is used to verify *how* one can use the cell, for example, type script can be used to ensure that no new tokens are created out from the air when transferring user-defined tokens.
+* **A required lock script.** (Note that cell usually only keeps the hash of the actual lock script, we will explain this later.) Lock script is used to verify *who* can unlock the cell. For example, we can put secp256k1 verification in a lock script to verify a signature is indeed signed by the cell owner, which makes the cell can only be unlocked when a valid signature is provided.
+* **An optional type script.** Type script is used to verify *how* one can use the cell, for example, type script can be used to ensure that no new tokens are created out from the air when transferring user-defined tokens.
 
-When unlocking a cell in a transaction, the corresponding input part should contain an unlock script, the hash of the unlock script should match `lock` part in the referenced cell(in other words, we are using `P2SH` scheme here). So another way of looking at this problem here, is that it's the `lock` part in the cell that really determines what unlock script is used here, and we can treat `lock` and `unlock` here as the same thing.
+When unlocking a cell in a transaction, there should be an unlock script along with the cell in the transaction's input part. The hash of the unlock script should match the `lock` field of the referenced cell(in other words, we are using `P2SH` scheme here). So another way of looking at this problem here, is that it is the `lock` field of the cell that really determines what unlock script can be used here, and we can treat `lock` and `unlock` here as the same thing.
 
-In addition to the different use cases, lock script and type script are also executed in different time: lock script is executed when we are *unlocking* a cell, while type script is executed when we are *creating* a cell. When validating the transaction in the above example, we are only executing `Lock 1`, `Lock 2`, `Type 3` and `Type 4` here.
+In addition to the different use cases, lock script and type script are also executed at different time: lock script is executed when we are *unlocking* a cell, while type script is executed when we are *creating* a cell. In the case of validating the transaction in the above example, we only execute `Lock 1`, `Lock 2`, `Type 3` and `Type 4` here.
 
 ## Script Model
 
-Both lock and type scripts are represented using the [Script](https://github.com/nervosnetwork/ckb/blob/3abf2b1f43dd27e986c8b2ee311d91e896051d3a/protocol/src/protocol.fbs#L85-L91) model. Fields in this model include:
+Both lock and type scripts are represented using the [Script](https://github.com/Mine77/ckb/blob/master/docs/data-structures.md#Script) model. Fields in this model include:
 
-* `version`: version field used to resolve incompatible upgrades.
+* `version`: version field is used to resolve incompatible upgrades.
 * `binary`: ELF formatted binary containing the actual RISC-V based script
-* `reference`: if your script already exists on CKB, you can use this field to *reference* the script instead of including it again. You can just put the script hash(will explain later how this is calculated) in this `reference ` field, then list the cell containing the script as a dep in current transaction. CKB would automatically locate cell, load the binary from there and use it as script `binary` part. Notice this only works when you don't provide a `binary` field value, otherwise the value in `binary` field always take precedence.
-* `signed_args`: Signed arguments, we will explain later what they are and how to distinguish them from `args`
-* `args`: Normal arguments
+* `reference`: if your script already exists on CKB, you can use `reference` field to *refer* this existed on-chain script, instead of including its binary in the script again. You can simply put the script hash (will explain later how this is calculated) in this `reference` field, then list the cell that contains the script as a `deps` in the current transaction. CKB would automatically locate cell, load the binary from the referred script and use it as the `binary` field of this script. Note that this only works when there's no value provided in the `binary` field , otherwise the value in the `binary` field always take precedence.
+* `signed_args`: Signed arguments, we will explain later what they are and how to distinguish them from `args`.
+* `args`: Normal arguments.
 
-CKB scripts use UNIX standard execution environment. Each script binary should contain a main function with the following signature:
+CKB scripts use UNIX standard execution environment. Each script binary should contain a main function with the following arguments:
 
 ```c
 int main(int argc, char* argv[]);
 ```
 
-CKB will concat `signed_args` and `args`, then use the concatenated array to fill `argc`/`argv` part, then start the script execution. Upon termination, the executed `main` function here will provide a return code, `0` means the script execution succeeds, other values mean the execution fails.
+When the script data is loaded in an CKB-VM instance, `signed_args` and `args` will be concatenated into an array to fill the `argc`/`argv` part, and then the script execution will be started. Upon termination, the executed `main` function here will provide a return code. A return code of `0` means that the script execution was succeeded, other values may indicate that the execution was failed.
 
-`signed_args` is introduced here to enable script sharing: assume 2 CKB users both want to use secp256k1 algorithm to secure their cells, in order to do this, they will need scripts for secp256k1 verification, the scripts will also need to include their public key respectively. If they put public key directly in the script binary, the difference in public keys will lead to different script binaries, which is quite a waste of resource considering the majority part of the 2 scripts here is exactly the same. To solve this problem, they can each put their public key in `signed_args` part of the script model, then leverage the same secp256k1 script binary. This way they can save as much resource as they can while preserving different ownerships. This might not be a huge save when we are talking 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
+`signed_args` is introduced here to enable script sharing: assuming 2 CKB users both want to use secp256k1 algorithm in the to secure their cells, in order to do this, they both will need a lock script with secp256k1 verification. The scripts will also need to include their public key respectively, for verifying signatures. 
 
-Each script has a `type hash` which uniquely identifies the script, for example, the `type hash` of unlock script, is exactly the corresponding `lock` field value in the referenced cell. When calculating type hash for a script, `version`, `binary`, `reference` and `signed_args` will all be used. So another way of looking at `signed_args`, is that it really is a part of the script.
+Now, if they both include their own public key directly in the script binary, the difference of their public keys will lead to the difference of their script binaries, which result in two different scripts and script hashes. This is quite a waste of resource, considering the majority part of these 2 scripts here are exactly the same. 
+
+To improve the resource reuse rate, it is recommended to put two different public keys in the `signed_args` part of the script model, instead of including them in the `binary` directly, then make use of the same secp256k1 script binary. In this way, resources are largely saved while preserving the different ownerships. This might not be a huge amount of savings when we are only considering 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
+
+> **Confusion Alert:** `signed_args` is not generated by signing the `args` parameters. As mentioned above, `signed_args` is designed to improve the code reuse rate by putting the non-reusable codes in the `signed_args` field (which is usually signatures, hence the notation of "signed args"), and putting reusable codes in the `binary` filed (or refer from other script via `reference` field). So `signed_args` is actually part of the script, whereas `args` is the input arguments for the scripts, which means `args` is actually NOT a part of the script. This is counterfactual considering the current data structure of `script`. It is promising that this will be fixed this in the future iteration...
+
+<!-- to do : add confusion alert for `type_hash` and `version` and `signed_args` -->
+
+Each script has a `type_hash` which uniquely identifies the script. This is typically used in two places:
+* **Referring script for a cell's `lock`.** In a transaction, there's a group of inputs. Each input has an input cell and an unlock script. In order to make this transaction valid, the `type_hash` of the unlock script should be identical to the hash filled in the `lock` field of the input cell. This can also be thought as the input cell referrers its unlock script through the `type_hash` of the unlock script.
+* **Referring script for a cell's `type`.**In the outputs of a transaction, each output cell has a `type` field, which should be filled with the type script. If a type script needs to refer a script stored in another cell as the script binary instead of including the binary codes directly, then the `type_hash` of the referred script should be filled in the `reference` field.
+
+When calculating the `type_hash` of a script, four parts will be used: `version`, `binary`, `reference` and `signed_args`. As mentioned above, `args` is not a part of the script while the `signed_args` is. So `args` is not included when calculating `type_hash` while `signed_args` is. For how to calculate `type_hash` in practice, please refer [this piece of code](https://github.com/nervosnetwork/ckb/blob/master/core/src/script.rs#L147). (`Version` is not really used because it is always `0` at this moment.)
+
+> Confusion Alert: the term "type" in `type_hash` means that the `type_hash` is the identity to a group of `script`, instead of a single one. Each of these `script` share the same `binary`, `reference` and `signed_args`, but has different `args`. So these `script` can be categorized into a single "type", therefore their identifier is called `type_hash`.
 
 In practice, one example script might look like following:
 
@@ -57,11 +71,11 @@ In practice, one example script might look like following:
 }
 ```
 
-This script uses `reference` field to refer to an existing cell for script binary. It contains one `signed_args` item, which is the public key for current user. It also has 2 items for `args`: the signature calculated for current transaction, and the sighash type to use here. Note that while this example has one `signed_args` item and 2 `args` items, this is completely determined by the actual script binary running, CKB doesn't have any restrictions here.
+This script uses `reference` field to refer to an existing cell for using its script `binary`. It contains one `signed_args` item, which is the public key of the current user. This script has 2 arguments for `args`: the first one is the signature calculated for the current transaction; the seconde part is flag for selecting the `sighash` type to be use in the script program. Please notice that the `signed_args` and `args` are only defined by the actual script binary. CKB system does not have any limitations to this part.
 
 # Writing Scripts in Ruby
 
-While it is possible to write scripts in pure C, it is not the main focus of this document. Here we will explain how to write Ruby scripts with our custom [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts). Note this just serves as an example here, it doesn't mean CKB is limited to scripts written in Ruby. On the contrary, CKB is extremely flexible and you can use almost any languages out there to write scripts, for example, you can leverage [micropython](https://micropython.org/) to write Python scripts, you can use [duktape](https://duktape.org/) to build JavaScript scripts. Of course if your focus is on performance, you can also directly use C to write scripts that extracts the maximum computing power out of CKB VM, and when Rust's RISC-V port becomes more stable, you can also use Rust to write CKB scripts.
+Here we will only explain how to write Ruby scripts with our custom [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts). Note that we only user Ruby as an example here, it doesn't mean that CKB is only limited to scripts written in Ruby. On the contrary, CKB is extremely flexible and you can use almost any languages out there to write scripts. For example, you can use [micropython](https://micropython.org/) to enable writing CKB scripts in Python, or use [duktape](https://duktape.org/) to run JavaScript scripts on CKB. Of course if your focus is on the performance of the script, you can also directly use C to write scripts that extracts the maximum computing power out of CKB VM. When Rust's RISC-V port becomes more stable, you can also use Rust to write CKB scripts.
 
 To help writing CKB scripts, we have ported [mruby](https://github.com/mruby/mruby) to CKB VM environment and also created several mruby libraries supporting CKB script development:
 
@@ -94,15 +108,15 @@ To build `mruby-contracts`, first follow the [setup steps](https://github.com/ne
 }
 ```
 
-As you can see, the first argument of `signed_args` here is just a Ruby script, with this, CKB will then first load mruby, and run your Ruby script as the actual script. If this script throws an exception, it will be translated to non-zero return code, denoting script execution error. If the script runs without exception, the script will be considered success.
+As you can see from the code above, the first argument of `signed_args` here is actually a Ruby script. To execute this script, CKB will first load mruby into an CKB-VM instance, creating a Ruby interpreter environment. .Then the Ruby script will be entered into this Ruby environment and executed. If this Ruby script throws an exception, it will be translated into a non-zero return code, denoting a script execution error. If the script runs without any exceptions, and returned a code `0`, the script will be considered as successfully executed.
 
 ## Ruby Libraries
 
-Even though Ruby is a powerful language, it cannot fulfill all the tasks without supporting libraries, we also provide a series of Ruby libraries helping writing scripts.
+Even though Ruby is a powerful language, it cannot fulfill all the tasks without supporting libraries. We provide a series of Ruby libraries here for helping writing scripts.
 
 ### mruby-sha3
 
-[mruby-sha3](https://github.com/nervosnetwork/mruby-contracts/tree/master/mruby-sha3) is just a simple library providing Ruby bindings for sha3. The usage is as follows:
+[mruby-sha3](https://github.com/nervosnetwork/mruby-contracts/tree/master/mruby-sha3) is a simple library providing Ruby bindings for sha3. The usage is as follows:
 
 ```ruby
 sha3 = Sha3.new
@@ -131,7 +145,7 @@ message = "<I am a 32 byte long message>"
 signature = Secp256k1.sign(secret_key, message)
 ```
 
-### Verify signature
+#### Verify signature
 
 ```ruby
 public_key = "<I am a public key>"
@@ -149,7 +163,7 @@ end
 
 #### Debug
 
-First mruby-ckb provides a debug method to print debug messages to CKB:
+mruby-ckb provides a debug method to print debug messages to CKB:
 
 ```ruby
 CKB.debug "I'm a debug message: ${5}"
@@ -174,7 +188,7 @@ Here we can see the overall transaction structure is returned by `CKB.load_tx`
 
 #### Load Script Hash
 
-Following code can be used to load script hash:
+The following code can be used to load script hash:
 
 ```ruby
 # Load cell input 1's unlock script hash, note lock and unlock refer to the same item.
@@ -195,7 +209,7 @@ If we have the following snippet in a Ruby script:
 CKB.debug "OutPoint: #{CKB.load_input_out_point(0, CKB::Source::CURRENT)}"
 ```
 
-We can then expect logs in CKB like following:
+We can then expect logs in CKB like:
 
 ```
 2018-12-17 16:10:44.185 +08:00 TransactionPoolService DEBUG script  Transaction f424348ef9d0..(omit 40)..8f79d68c82b4, input 0 DEBUG OUTPUT: OutPoint: {"hash"=>"#~\x9ekK23\xc7\x0f%\xaa\n\xa1\xc8\xc0\x81<\x948`B\xab\x9e\xb5\xe0\xea8\xe3r\xd3\x9e\x99", "index"=>0}
