@@ -3,6 +3,7 @@ require_relative "always_success_wallet"
 require_relative "udt_wallet"
 require_relative "utils"
 require_relative "version"
+require_relative "blake2b"
 
 require "secp256k1"
 require "securerandom"
