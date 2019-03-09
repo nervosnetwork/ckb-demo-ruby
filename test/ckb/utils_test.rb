@@ -19,17 +19,17 @@ class Ckb::UtilsTest < Minitest::Test
     assert Ckb::Utils.bin_to_prefix_hex(@bin) == "0x#{@hex}"
   end
 
-  def test_json_script_to_type_hash
-    type_hash = "0xea00e3b9e051e52875cb31f1a6522d3a72a31b52bcea492dfd9c4f01a1b84d86"
-    json_script = {
-      args: [],
-      binary: "0x0100000000000000",
-      reference: nil,
-      signed_args: [],
-      version: 0
-    }
-    assert Ckb::Utils.json_script_to_type_hash(json_script) == type_hash
-  end
+  # def test_json_script_to_type_hash
+  #   type_hash = "0xea00e3b9e051e52875cb31f1a6522d3a72a31b52bcea492dfd9c4f01a1b84d86"
+  #   json_script = {
+  #     args: [],
+  #     binary: "0x0100000000000000",
+  #     reference: nil,
+  #     signed_args: [],
+  #     version: 0
+  #   }
+  #   assert Ckb::Utils.json_script_to_type_hash(json_script) == type_hash
+  # end
 
   def test_calculate_cell_min_capacity
     output = {

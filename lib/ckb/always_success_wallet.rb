@@ -1,5 +1,6 @@
 require_relative "api"
 require_relative "utils"
+require_relative "blake2b"
 
 module Ckb
   class AlwaysSuccessWallet
@@ -38,7 +39,7 @@ module Ckb
 
     def install_mruby_cell!(processed_mruby_cell_filename)
       data = File.read(processed_mruby_cell_filename)
-      cell_hash = Ckb::Utils.bin_to_prefix_hex(SHA3::Digest::SHA256.digest(data))
+      cell_hash = Ckb::Utils.bin_to_prefix_hex(Ckb::Blake2b.digest(data))
       output = {
         capacity: 0,
         data: data,
@@ -78,7 +79,7 @@ module Ckb
       cell_with_status = api.get_live_cell(configuration[:out_point])
       return false if cell_with_status[:status] != "live"
       returned_cell_hash = Ckb::Utils.bin_to_prefix_hex(
-        SHA3::Digest::SHA256.digest(Ckb::Utils.hex_to_bin(cell_with_status[:cell][:data])))
+        Ckb::Blake2b.digest(Ckb::Utils.hex_to_bin(cell_with_status[:cell][:data])))
       unless returned_cell_hash == configuration[:cell_hash]
         raise "Cell hash doesn't match, something weird is happening!"
       end

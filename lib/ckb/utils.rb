@@ -25,7 +25,7 @@ module Ckb
     end
 
     def self.json_script_to_type_hash(script)
-      s = SHA3::Digest::SHA256.new
+      s = Ckb::Blake2b.new
       if script[:reference]
         s << hex_to_bin(script[:reference])
       end
@@ -43,7 +43,7 @@ module Ckb
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       inputs.map do |input|
         sighash_type = 0x84.to_s
-        s = SHA3::Digest::SHA256.new
+        s = Ckb::Blake2b.new
         s.update(sighash_type)
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
@@ -69,7 +69,7 @@ module Ckb
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       inputs.map do |input|
         sighash_type = 0x81.to_s
-        s = SHA3::Digest::SHA256.new
+        s = Ckb::Blake2b.new
         s.update(sighash_type)
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
@@ -91,7 +91,7 @@ module Ckb
     end
 
     def self.sign_sighash_all_inputs(inputs, outputs, privkey)
-      s = SHA3::Digest::SHA256.new
+      s = Ckb::Blake2b.new
       sighash_type = 0x1.to_s
       s.update(sighash_type)
       inputs.each do |input|

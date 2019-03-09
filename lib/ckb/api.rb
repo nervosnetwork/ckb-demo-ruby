@@ -1,9 +1,9 @@
 require_relative 'utils'
+require_relative 'blake2b'
 
 require 'json'
 require 'net/http'
 require 'uri'
-require 'sha3'
 
 module Ckb
   URL = "http://localhost:8114"
@@ -35,7 +35,7 @@ module Ckb
       result
     end
 
-    # Returns a default secp256k1-sha3 input unlock contract included in CKB
+    # Returns a default secp256k1-blake2b input unlock contract included in CKB
     def always_success_out_point
       {
         hash: genesis_block[:commit_transactions][0][:hash],
@@ -44,7 +44,7 @@ module Ckb
     end
 
     def always_success_cell_hash
-      hash_bin = SHA3::Digest::SHA256.digest(
+      hash_bin = Ckb::Blake2b.digest(
         Ckb::Utils.hex_to_bin(genesis_block[:commit_transactions][0][:outputs][0][:data])
       )
       Ckb::Utils.bin_to_prefix_hex(hash_bin)
