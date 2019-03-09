@@ -22,4 +22,11 @@ class Ckb::Blake2bTest < Minitest::Test
     end
   end
 
+  def test_self_digest
+    @fixture.each do |obj|
+      digest = Ckb::Blake2b.digest(obj[:str])
+      assert Ckb::Utils.bin_to_hex(digest) == obj[:digest]
+    end
+  end
+
 end
