@@ -8,7 +8,9 @@ rvm:
   - 2.6.1
 env:
   - SKIP_RPC_TESTS=true
-before_install: gem install bundler -v 1.17.3
+before_install: 
+  - gem install bundler -v 1.17.3
+  - sudo apt-get install -y libsodium-dev
 install:
   - git clone https://github.com/bitcoin-core/secp256k1.git && cd secp256k1 && ./autogen.sh && ./configure --enable-module-recovery && make && ./tests && sudo make install && cd ..
   - bundle install
