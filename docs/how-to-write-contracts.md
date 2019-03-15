@@ -65,7 +65,7 @@ While it is possible to write scripts in pure C, it is not the main focus of thi
 
 To help writing CKB scripts, we have ported [mruby](https://github.com/mruby/mruby) to CKB VM environment and also created several mruby libraries supporting CKB script development:
 
-* mruby-sha3: A sha3 binding for mruby environment
+* mruby-blake2b: A blake2b binding for mruby environment(hard-code personalization to "ckb-default-hash")
 * mruby-secp256k1: A secp256k1 binding for mruby environment
 * mruby-ckb: CKB supporting libraries, including features to read transaction data as well as sending debug messages.
 
@@ -84,7 +84,7 @@ To build `mruby-contracts`, first follow the [setup steps](https://github.com/ne
   "version": 0,
   "reference": "0x12b464bcab8f55822501cdb91ea35ea707d72ec970363972388a0c49b94d377c",
   "signed_args": [
-    "# This contract needs 1 signed arguments:\n# 0. pubkey, used to identify token owner\n# This contracts also accepts 2 required unsigned arguments and 1\n# optional unsigned argument:\n# 1. signature, signature used to present ownership\n# 2. type, SIGHASH type\n# 3. output(s), this is only used for SIGHASH_SINGLE and SIGHASH_MULTIPLE types,\n# for SIGHASH_SINGLE, it stores an integer denoting the index of output to be\n# signed; for SIGHASH_MULTIPLE, it stores a string of `,` separated array denoting\n# outputs to sign\nif ARGV.length != 3 && ARGV.length != 4\n  raise \"Wrong number of arguments!\"\nend\n\nSIGHASH_ALL = 0x1\nSIGHASH_NONE = 0x2\nSIGHASH_SINGLE = 0x3\nSIGHASH_MULTIPLE = 0x4\nSIGHASH_ANYONECANPAY = 0x80\n\ndef hex_to_bin(s)\n  if s.start_with?(\"0x\")\n    s = s[2..-1]\n  end\n  s.each_char.each_slice(2).map(&:join).map(&:hex).map(&:chr).join\nend\n\n\ntx = CKB.load_tx\nsha3 = Sha3.new\n\nsha3.update(ARGV[2])\nsighash_type = ARGV[2].to_i\n\nif sighash_type & SIGHASH_ANYONECANPAY != 0\n  # Only hash current input\n  outpoint = CKB.load_input_out_point(0, CKB::Source::CURRENT)\n  sha3.update(outpoint[\"hash\"])\n  sha3.update(outpoint[\"index\"].to_s)\n  sha3.update(CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::LOCK_HASH).readall)\nelse\n  # Hash all inputs\n  tx[\"inputs\"].each_with_index do |input, i|\n    sha3.update(input[\"hash\"])\n    sha3.update(input[\"index\"].to_s)\n    sha3.update(CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::LOCK))\n  end\nend\n\ncase sighash_type & (~SIGHASH_ANYONECANPAY)\nwhen SIGHASH_ALL\n  tx[\"outputs\"].each_with_index do |output, i|\n    sha3.update(output[\"capacity\"].to_s)\n    sha3.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      sha3.update(hash)\n    end\n  end\nwhen SIGHASH_SINGLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  output_index = ARGV[3].to_i\n  output = tx[\"outputs\"][output_index]\n  sha3.update(output[\"capacity\"].to_s)\n  sha3.update(output[\"lock\"])\n  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n    sha3.update(hash)\n  end\nwhen SIGHASH_MULTIPLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  ARGV[3].split(\",\").each do |output_index|\n    output_index = output_index.to_i\n    output = tx[\"outputs\"][output_index]\n    sha3.update(output[\"capacity\"].to_s)\n    sha3.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      sha3.update(hash)\n    end\n  end\nend\nhash = sha3.final\n\npubkey = ARGV[0]\nsignature = ARGV[1]\n\nunless Secp256k1.verify(hex_to_bin(pubkey), hex_to_bin(signature), hash)\n  raise \"Signature verification error!\"\nend\n",
+    "# This contract needs 1 signed arguments:\n# 0. pubkey, used to identify token owner\n# This contracts also accepts 2 required unsigned arguments and 1\n# optional unsigned argument:\n# 1. signature, signature used to present ownership\n# 2. type, SIGHASH type\n# 3. output(s), this is only used for SIGHASH_SINGLE and SIGHASH_MULTIPLE types,\n# for SIGHASH_SINGLE, it stores an integer denoting the index of output to be\n# signed; for SIGHASH_MULTIPLE, it stores a string of `,` separated array denoting\n# outputs to sign\nif ARGV.length != 3 && ARGV.length != 4\n  raise \"Wrong number of arguments!\"\nend\n\nSIGHASH_ALL = 0x1\nSIGHASH_NONE = 0x2\nSIGHASH_SINGLE = 0x3\nSIGHASH_MULTIPLE = 0x4\nSIGHASH_ANYONECANPAY = 0x80\n\ndef hex_to_bin(s)\n  if s.start_with?(\"0x\")\n    s = s[2..-1]\n  end\n  [s].pack(\"H*\")\nend\n\n\ntx = CKB.load_tx\nblake2b = Blake2b.new\n\nblake2b.update(ARGV[2])\nsighash_type = ARGV[2].to_i\n\nif sighash_type & SIGHASH_ANYONECANPAY != 0\n  # Only hash current input\n  out_point = CKB.load_input_out_point(0, CKB::Source::CURRENT)\n  blake2b.update(out_point[\"hash\"])\n  blake2b.update(out_point[\"index\"].to_s)\n  blake2b.update(CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::LOCK_HASH).readall)\nelse\n  # Hash all inputs\n  tx[\"inputs\"].each_with_index do |input, i|\n    blake2b.update(input[\"hash\"])\n    blake2b.update(input[\"index\"].to_s)\n    blake2b.update(CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::LOCK))\n  end\nend\n\ncase sighash_type & (~SIGHASH_ANYONECANPAY)\nwhen SIGHASH_ALL\n  tx[\"outputs\"].each_with_index do |output, i|\n    blake2b.update(output[\"capacity\"].to_s)\n    blake2b.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      blake2b.update(hash)\n    end\n  end\nwhen SIGHASH_SINGLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  output_index = ARGV[3].to_i\n  output = tx[\"outputs\"][output_index]\n  blake2b.update(output[\"capacity\"].to_s)\n  blake2b.update(output[\"lock\"])\n  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n    blake2b.update(hash)\n  end\nwhen SIGHASH_MULTIPLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  ARGV[3].split(\",\").each do |output_index|\n    output_index = output_index.to_i\n    output = tx[\"outputs\"][output_index]\n    blake2b.update(output[\"capacity\"].to_s)\n    blake2b.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      blake2b.update(hash)\n    end\n  end\nend\nhash = blake2b.final\n\npubkey = ARGV[0]\nsignature = ARGV[1]\n\nunless Secp256k1.verify(hex_to_bin(pubkey), hex_to_bin(signature), hash)\n  raise \"Signature verification error!\"\nend\n",
     "024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01"
   ],
   "args": [
@@ -100,16 +100,16 @@ As you can see, the first argument of `signed_args` here is just a Ruby script, 
 
 Even though Ruby is a powerful language, it cannot fulfill all the tasks without supporting libraries, we also provide a series of Ruby libraries helping writing scripts.
 
-### mruby-sha3
+### mruby-blake2b
 
-[mruby-sha3](https://github.com/nervosnetwork/mruby-contracts/tree/master/mruby-sha3) is just a simple library providing Ruby bindings for sha3. The usage is as follows:
+[mruby-blake2b](https://github.com/nervosnetwork/mruby-contracts/tree/master/mruby-blake2b) is just a simple library providing Ruby bindings for blake2b(hard-code personalization to "ckb-default-hash"). The usage is as follows:
 
 ```ruby
-sha3 = Sha3.new
-sha3.update("abcdef")
+blake2b = Blake2b.new
+blake2b.update("abcdef")
 # Only string is accepted as argument to the update method
-sha3.update(5.to_s)
-hash = sha3.final
+blake2b.update(5.to_s)
+hash = blake2b.final
 ```
 
 ### mruby-secp256k1
