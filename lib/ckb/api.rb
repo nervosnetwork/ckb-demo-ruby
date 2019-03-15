@@ -11,8 +11,9 @@ module Ckb
 
   class Api
     attr_reader :uri
-    attr_reader :mruby_out_point
-    attr_reader :mruby_cell_hash
+    attr_reader :script_out_point
+    attr_reader :script_cell_hash
+    attr_reader :script_type
 
     def initialize(host: URL)
       @uri = URI(host)
@@ -51,27 +52,29 @@ module Ckb
     end
 
     def set_configuration!(configuration)
-      @mruby_out_point = configuration[:out_point]
-      @mruby_cell_hash = configuration[:cell_hash]
+      @script_out_point = configuration[:out_point]
+      @script_cell_hash = configuration[:cell_hash]
+      @script_type = configuration[:type]
     end
 
     def set_and_save_default_configuration!(configuration)
       set_configuration!(configuration)
-      save_mruby_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+      save_script_configuration!(DEFAULT_CONFIGURATION_FILENAME)
     end
 
     def load_default_configuration!
-      load_mruby_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+      load_script_configuration!(DEFAULT_CONFIGURATION_FILENAME)
     end
 
-    def load_mruby_configuration!(configuration_filename)
+    def load_script_configuration!(configuration_filename)
       set_configuration!(JSON.parse(File.read(configuration_filename), symbolize_names: true))
     end
 
-    def save_mruby_configuration!(configuration_filename)
+    def save_script_configuration!(configuration_filename)
       conf = {
-        out_point: mruby_out_point,
-        cell_hash: mruby_cell_hash
+        out_point: script_out_point,
+        cell_hash: script_cell_hash,
+        type: script_type
       }
       File.write(configuration_filename, conf.to_json)
     end
