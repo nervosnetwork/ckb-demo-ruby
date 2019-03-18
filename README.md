@@ -81,7 +81,7 @@ $ bundle exec pry -r ./lib/ckb/wallet.rb
 28
 ```
 
-Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem, which requires manual install of secp256k1 library. Follow the [prerequisite](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) part in the gem to install secp256k1 library locally.
+Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem and the [rbnacl](https://github.com/crypto-rb/rbnacl) gem, which require manual install of secp256k1 and libsodium library. Follow [this](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) and [this](https://github.com/crypto-rb/rbnacl#installation) to install them locally.
 
 In the Ruby shell, we can start playing with the SDK.
 
