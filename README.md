@@ -203,7 +203,7 @@ Now we can perform normal transfers between wallets:
 => 87655
 ```
 
-### User defined token(Here and below are only support ruby contract now)
+### User defined token(Only supported by ruby contract now)
 
 We can also create user defined token that's separate from CKB. A new user defined token is made of 2 parts:
 
