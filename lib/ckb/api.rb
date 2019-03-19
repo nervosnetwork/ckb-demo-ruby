@@ -7,7 +7,8 @@ require 'uri'
 
 module Ckb
   URL = "http://localhost:8114"
-  DEFAULT_CONFIGURATION_FILENAME = File.expand_path("../../../conf.json", __FILE__)
+  MRUBY_CONFIGURATION_FILENAME = File.expand_path("../../../conf.json", __FILE__)
+  SYSTEM_CONFIGURATION_FILENAME = File.expand_path("../../../system_conf.json", __FILE__)
 
   class Api
     attr_reader :uri
@@ -54,16 +55,26 @@ module Ckb
     def set_configuration!(configuration)
       @script_out_point = configuration[:out_point]
       @script_cell_hash = configuration[:cell_hash]
-      @script_type = configuration[:type]
     end
 
-    def set_and_save_default_configuration!(configuration)
+    def set_and_save_mruby_configuration!(configuration)
       set_configuration!(configuration)
-      save_script_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+      save_script_configuration!(MRUBY_CONFIGURATION_FILENAME)
     end
 
-    def load_default_configuration!
-      load_script_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+    def set_and_save_system_configuration!(configuration)
+      set_configuration!(configuration)
+      save_script_configuration!(SYSTEM_CONFIGURATION_FILENAME)
+    end
+
+    def load_mruby_configuration!
+      @script_type = :mruby
+      load_script_configuration!(MRUBY_CONFIGURATION_FILENAME)
+    end
+
+    def load_system_configuration!
+      @script_type = :system
+      load_script_configuration!(SYSTEM_CONFIGURATION_FILENAME)
     end
 
     def load_script_configuration!(configuration_filename)
@@ -73,8 +84,7 @@ module Ckb
     def save_script_configuration!(configuration_filename)
       conf = {
         out_point: script_out_point,
-        cell_hash: script_cell_hash,
-        type: script_type
+        cell_hash: script_cell_hash
       }
       File.write(configuration_filename, conf.to_json)
     end
