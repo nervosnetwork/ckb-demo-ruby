@@ -4,7 +4,9 @@
 
 First you will need to have [ckb](https://github.com/nervosnetwork/ckb) compiled of course. Feel free to just following the official build steps in the README. We will customize configs later.
 
-You will also need [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts). Follow the steps in the README to build it, you will need the generated mruby contract file at `build/argv_source_entry`.
+You will also need [ckb-system-scripts](https://github.com/nervosnetwork/ckb-system-scripts) if you want to use C contracts. It's prebuilt [here](https://github.com/nervosnetwork/binary/raw/master/contracts/bitcoin_unlock). For now only ruby contacts support udt wallet, choose ruby if you want to use udt wallet.
+
+You will also need [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts) if you want to use ruby contracts. Follow the steps in the README to build it, you will need the generated mruby contract file at `build/argv_source_entry`.
 
 If you don't want to build mruby-contracts yourself, we have a prebuilt binary at [here](https://github.com/nervosnetwork/binary/raw/master/contracts/mruby/argv_source_entry).
 
@@ -85,7 +87,49 @@ Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.c
 
 In the Ruby shell, we can start playing with the SDK.
 
-### Install mruby contract
+### Install C contract(Skip if you want to use mruby contract)
+
+First, we will need the `bitcoin_unlock` file as mentioned in `Prerequisite` section and preprocess it a bit. The following steps assume that the file and the processed file are all in directory `/path/to/`:
+
+```bash
+$ git clone https://github.com/nervosnetwork/ckb-binary-to-script
+$ cd ckb-binary-to-script
+$ cargo build
+$ ./target/debug/ckb-binary-to-script < /path/to/bitcoin_unlock > /path/to/processed_bitcoin_unlock
+```
+
+Notice this preprocessing step is only needed since Ruby doesn't have a FlatBuffers implementation, for another language, we can build this preprocessing step directly in the SDK.
+
+Then we can install this C contract into CKB:
+
+```ruby
+[1] pry(main)> asw = Ckb::AlwaysSuccessWallet.new(api)
+[2] pry(main)> conf = asw.install_c_cell!("/path/to/processed_bitcoin_unlock")
+=> {:out_point=>{:hash=>"0x20b849ffe67eb5872eca0d68fff1de193f07354ea903948ade6a3c170d89e282", :index=>0},
+ :cell_hash=>"0x03dba46071a6702b39c1e626f469b4ed9460ed0ad92cf2e21456c34e1e2b04fd"}
+[3] pry(main)> asw.configuration_installed?(conf)
+=> false
+[3] pry(main)> # Wait a while till this becomes true
+[4] pry(main)> asw.configuration_installed?(conf)
+=> true
+```
+
+Now you have the C contract installed in CKB, and the relavant configuration in `conf` structure. You can inform `api` object to use this configuration:
+
+```ruby
+[1] pry(main)> api.set_and_save_default_configuration!(conf)
+```
+
+Notice this line also saves the configuration to a local file, so next time when you are opening a `pry` console, you only need to load the saved configuration:
+
+```ruby
+[1] pry(main)> api = Ckb::Api.new
+[2] pry(main)> api.load_default_configuration!
+```
+
+Only when you clear the data directory in the CKB node, or switch to a different CKB node, will you need to perform the above installations again.
+
+### Install mruby contract(Skip if you want to use C contract)
 
 First, we will need the `argv_source_entry` file as mentioned in `Prerequisite` section and preprocess it a bit. The following steps assume that the file and the processed file are all in directory `/path/to/`:
 
@@ -127,7 +171,7 @@ Notice this line also saves the configuration to a local file, so next time when
 
 Only when you clear the data directory in the CKB node, or switch to a different CKB node, will you need to perform the above installations again.
 
-### Basic wallet
+### Basic wallet(Both C and ruby contract)
 
 To play with wallets, first we need to add some capacities to a wallet:
 
@@ -159,7 +203,7 @@ Now we can perform normal transfers between wallets:
 => 87655
 ```
 
-### User defined token
+### User defined token(Only supported by ruby contract now)
 
 We can also create user defined token that's separate from CKB. A new user defined token is made of 2 parts:
 
