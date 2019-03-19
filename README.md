@@ -4,7 +4,7 @@
 
 First you will need to have [ckb](https://github.com/nervosnetwork/ckb) compiled of course. Feel free to just following the official build steps in the README. We will customize configs later.
 
-You will also need [ckb-system-scripts](https://github.com/nervosnetwork/ckb-system-scripts) if you want to use c contracts. It's prebuild [here](https://github.com/nervosnetwork/binary/raw/master/contracts/bitcoin_unlock). Now only ruby contacts support udt wallet, choose ruby if you want to use udt wallet.
+You will also need [ckb-system-scripts](https://github.com/nervosnetwork/ckb-system-scripts) if you want to use C contracts. It's prebuilt [here](https://github.com/nervosnetwork/binary/raw/master/contracts/bitcoin_unlock). For now only ruby contacts support udt wallet, choose ruby if you want to use udt wallet.
 
 You will also need [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts) if you want to use ruby contracts. Follow the steps in the README to build it, you will need the generated mruby contract file at `build/argv_source_entry`.
 
