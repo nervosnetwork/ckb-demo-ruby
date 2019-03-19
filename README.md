@@ -120,7 +120,7 @@ Now you have the C contract installed in CKB, and the relavant configuration in 
 [1] pry(main)> api.set_and_save_default_configuration!(conf)
 ```
 
-Notice this line also saves the configuration to a local file, so next time when you are opening a `pry` console, you only need to load the save configuration:
+Notice this line also saves the configuration to a local file, so next time when you are opening a `pry` console, you only need to load the saved configuration:
 
 ```ruby
 [1] pry(main)> api = Ckb::Api.new
