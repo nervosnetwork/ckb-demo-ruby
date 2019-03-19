@@ -171,7 +171,7 @@ Notice this line also saves the configuration to a local file, so next time when
 
 Only when you clear the data directory in the CKB node, or switch to a different CKB node, will you need to perform the above installations again.
 
-### Basic wallet(Both c and ruby contract)
+### Basic wallet(Both C and ruby contract)
 
 To play with wallets, first we need to add some capacities to a wallet:
 
