@@ -4,7 +4,7 @@
 
 First you will need to have [ckb](https://github.com/nervosnetwork/ckb) compiled of course. Feel free to just following the official build steps in the README. We will customize configs later.
 
-You will also need [ckb-system-scripts](https://github.com/nervosnetwork/ckb-system-scripts) if you want to use c contracts. It's prebuild [here](https://github.com/nervosnetwork/binary/raw/master/contracts/bitcoin_unlock). Now only ruby contacts support udt wallet, choose ruby if you want to use udt wallet.
+You will also need [ckb-system-scripts](https://github.com/nervosnetwork/ckb-system-scripts) if you want to use C contracts. It's prebuilt [here](https://github.com/nervosnetwork/binary/raw/master/contracts/bitcoin_unlock). For now only ruby contacts support udt wallet, choose ruby if you want to use udt wallet.
 
 You will also need [mruby-contracts](https://github.com/nervosnetwork/mruby-contracts) if you want to use ruby contracts. Follow the steps in the README to build it, you will need the generated mruby contract file at `build/argv_source_entry`.
 
@@ -120,7 +120,7 @@ Now you have the C contract installed in CKB, and the relavant configuration in 
 [1] pry(main)> api.set_and_save_default_configuration!(conf)
 ```
 
-Notice this line also saves the configuration to a local file, so next time when you are opening a `pry` console, you only need to load the save configuration:
+Notice this line also saves the configuration to a local file, so next time when you are opening a `pry` console, you only need to load the saved configuration:
 
 ```ruby
 [1] pry(main)> api = Ckb::Api.new
@@ -171,7 +171,7 @@ Notice this line also saves the configuration to a local file, so next time when
 
 Only when you clear the data directory in the CKB node, or switch to a different CKB node, will you need to perform the above installations again.
 
-### Basic wallet(Both c and ruby contract)
+### Basic wallet(Both C and ruby contract)
 
 To play with wallets, first we need to add some capacities to a wallet:
 
@@ -203,7 +203,7 @@ Now we can perform normal transfers between wallets:
 => 87655
 ```
 
-### User defined token(Here and below are only support ruby contract now)
+### User defined token(Only supported by ruby contract now)
 
 We can also create user defined token that's separate from CKB. A new user defined token is made of 2 parts:
 
