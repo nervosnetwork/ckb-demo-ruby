@@ -37,8 +37,9 @@ module Ckb
       api.send_transaction(tx)
     end
 
-    def install_mruby_cell!(processed_mruby_cell_filename)
-      data = File.read(processed_mruby_cell_filename)
+    # type: :mruby or :c
+    def install_cell!(processed_cell_filename, type: :system)
+      data = File.read(processed_cell_filename)
       cell_hash = Ckb::Utils.bin_to_prefix_hex(Ckb::Blake2b.digest(data))
       output = {
         capacity: 0,
@@ -71,8 +72,19 @@ module Ckb
           hash: hash,
           index: 0
         },
-        cell_hash: cell_hash
+        cell_hash: cell_hash,
+        type: type
       }
+    end
+
+    # install mruby-contracts
+    def install_mruby_cell!(processed_cell_filename)
+      install_cell!(processed_cell_filename, type: :mruby)
+    end
+
+    # install ckb-system-scripts
+    def install_system_cell!(processed_cell_filename)
+      install_cell!(processed_cell_filename, type: :system)
     end
 
     def configuration_installed?(configuration)

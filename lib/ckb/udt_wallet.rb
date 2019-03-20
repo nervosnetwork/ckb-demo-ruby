@@ -27,7 +27,7 @@ module Ckb
     def unlock_script_json_object(pubkey)
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        reference: api.script_cell_hash,
         signed_args: [
           account_wallet ? UNLOCK_SINGLE_CELL_SCRIPT : UNLOCK_SCRIPT,
           name,
@@ -40,7 +40,7 @@ module Ckb
     def contract_script_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        reference: api.script_cell_hash,
         signed_args: [
           CONTRACT_SCRIPT,
           name,
@@ -113,7 +113,7 @@ module Ckb
     def genesis_unlock_script_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        reference: api.script_cell_hash,
         signed_args: [
           Ckb::FIXED_AMOUNT_GENESIS_UNLOCK_SCRIPT,
           rate.to_s,
@@ -127,7 +127,7 @@ module Ckb
     def genesis_contract_script_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        reference: api.script_cell_hash,
         signed_args: [
           Ckb::FIXED_AMOUNT_CONTRACT_SCRIPT,
           input_hash,
@@ -140,7 +140,7 @@ module Ckb
     def unlock_script_json_object(pubkey)
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        reference: api.script_cell_hash,
         signed_args: [
           UNLOCK_SINGLE_CELL_SCRIPT,
           input_hash,
@@ -153,7 +153,7 @@ module Ckb
     def contract_script_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        reference: api.script_cell_hash,
         signed_args: [
           Ckb::FIXED_AMOUNT_CONTRACT_SCRIPT,
           input_hash,
@@ -305,7 +305,7 @@ module Ckb
       self_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: inputs + self_inputs,
         outputs: outputs
       }
@@ -339,7 +339,7 @@ module Ckb
       ]
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(inputs, outputs, privkey),
         outputs: outputs
       }
@@ -457,7 +457,7 @@ module Ckb
       }
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: signed_inputs + [target_input],
         outputs: outputs
       }

@@ -7,12 +7,14 @@ require 'uri'
 
 module Ckb
   URL = "http://localhost:8114"
-  DEFAULT_CONFIGURATION_FILENAME = File.expand_path("../../../conf.json", __FILE__)
+  MRUBY_CONFIGURATION_FILENAME = File.expand_path("../../../conf.json", __FILE__)
+  SYSTEM_CONFIGURATION_FILENAME = File.expand_path("../../../system_conf.json", __FILE__)
 
   class Api
     attr_reader :uri
-    attr_reader :mruby_out_point
-    attr_reader :mruby_cell_hash
+    attr_reader :script_out_point
+    attr_reader :script_cell_hash
+    attr_reader :script_type
 
     def initialize(host: URL)
       @uri = URI(host)
@@ -51,27 +53,38 @@ module Ckb
     end
 
     def set_configuration!(configuration)
-      @mruby_out_point = configuration[:out_point]
-      @mruby_cell_hash = configuration[:cell_hash]
+      @script_out_point = configuration[:out_point]
+      @script_cell_hash = configuration[:cell_hash]
     end
 
-    def set_and_save_default_configuration!(configuration)
+    def set_and_save_mruby_configuration!(configuration)
       set_configuration!(configuration)
-      save_mruby_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+      save_script_configuration!(MRUBY_CONFIGURATION_FILENAME)
     end
 
-    def load_default_configuration!
-      load_mruby_configuration!(DEFAULT_CONFIGURATION_FILENAME)
+    def set_and_save_system_configuration!(configuration)
+      set_configuration!(configuration)
+      save_script_configuration!(SYSTEM_CONFIGURATION_FILENAME)
     end
 
-    def load_mruby_configuration!(configuration_filename)
+    def load_mruby_configuration!
+      @script_type = :mruby
+      load_script_configuration!(MRUBY_CONFIGURATION_FILENAME)
+    end
+
+    def load_system_configuration!
+      @script_type = :system
+      load_script_configuration!(SYSTEM_CONFIGURATION_FILENAME)
+    end
+
+    def load_script_configuration!(configuration_filename)
       set_configuration!(JSON.parse(File.read(configuration_filename), symbolize_names: true))
     end
 
-    def save_mruby_configuration!(configuration_filename)
+    def save_script_configuration!(configuration_filename)
       conf = {
-        out_point: mruby_out_point,
-        cell_hash: mruby_cell_hash
+        out_point: script_out_point,
+        cell_hash: script_cell_hash
       }
       File.write(configuration_filename, conf.to_json)
     end

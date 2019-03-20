@@ -65,7 +65,7 @@ module Ckb
       end
       {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -99,7 +99,7 @@ module Ckb
 
       {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: Ckb::Utils.sign_sighash_multiple_anyonecanpay_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -139,7 +139,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -215,7 +215,7 @@ module Ckb
 
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -285,7 +285,7 @@ module Ckb
       signed_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(i.inputs, outputs, privkey)
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: signed_inputs + additional_inputs,
         outputs: outputs
       }
@@ -318,7 +318,7 @@ module Ckb
             args: [
               signature_hex
             ],
-            reference: api.mruby_cell_hash,
+            reference: api.script_cell_hash,
             signed_args: [
               Ckb::CONTRACT_SCRIPT,
               token_info.name,
@@ -336,7 +336,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.mruby_out_point],
+        deps: [api.script_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
         outputs: outputs
       }
@@ -389,15 +389,21 @@ module Ckb
     end
 
     def verify_script_json_object
+      signed_args = if api.script_type.to_sym == :mruby
+                      [
+                        VERIFY_SCRIPT,
+                        # We could of course just hash raw bytes, but since right now CKB
+                        # CLI already uses this scheme, we stick to the same way for compatibility
+                        Ckb::Utils.bin_to_hex(pubkey_bin)
+                      ]
+                    else
+                      [Ckb::Utils.bin_to_hex(pubkey_bin)]
+                    end
+
       {
         version: 0,
-        reference: api.mruby_cell_hash,
-        signed_args: [
-          VERIFY_SCRIPT,
-          # We could of course just hash raw bytes, but since right now CKB
-          # CLI already uses this scheme, we stick to the same way for compatibility
-          Ckb::Utils.bin_to_hex(pubkey_bin)
-        ]
+        reference: api.script_cell_hash,
+        signed_args: signed_args
       }
     end
 
