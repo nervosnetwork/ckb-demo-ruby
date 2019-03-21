@@ -38,7 +38,7 @@ module Ckb
     end
 
     # type: :mruby or :c
-    def install_cell!(processed_cell_filename, type: :system)
+    def install_cell!(processed_cell_filename, type: :c)
       data = File.read(processed_cell_filename)
       cell_hash = Ckb::Utils.bin_to_prefix_hex(Ckb::Blake2b.digest(data))
       output = {
@@ -83,8 +83,8 @@ module Ckb
     end
 
     # install ckb-system-scripts
-    def install_system_cell!(processed_cell_filename)
-      install_cell!(processed_cell_filename, type: :system)
+    def install_c_cell!(processed_cell_filename)
+      install_cell!(processed_cell_filename, type: :c)
     end
 
     def configuration_installed?(configuration)
