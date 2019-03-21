@@ -73,11 +73,11 @@ To build `mruby-contracts`, first follow the [setup steps](https://github.com/ne
 
 ```ruby
 [1] pry(main)> api = Ckb::Api.new
-[2] pry(main)> api.script_cell_hash
-[3] pry(main)> api.script_out_point
+[2] pry(main)> api.mruby_cell_hash
+[3] pry(main)> api.mruby_out_point
 ```
 
-`script_cell_hash` should be used as `reference` field in the script you assembled. `script_out_point` should go in the deps part of the transaction you assembled. With that, you can put the Ruby script you want to run as the first signed argument in the script:
+`mruby_cell_hash` should be used as `reference` field in the script you assembled. `mruby_out_point` should go in the deps part of the transaction you assembled. With that, you can put the Ruby script you want to run as the first signed argument in the script:
 
 ```json
 {
