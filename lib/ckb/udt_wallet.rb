@@ -235,9 +235,7 @@ module Ckb
       while current_from <= to
         current_to = [current_from + 100, to].min
         cells = api.get_cells_by_type_hash(hash, current_from, current_to)
-        cells_with_data = cells.select do |cell|
-          cell[:lock] == address
-        end.map do |cell|
+        cells_with_data = cells.map do |cell|
           tx = get_transaction(cell[:out_point][:hash])
           amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
           cell.merge(amount: amount)
