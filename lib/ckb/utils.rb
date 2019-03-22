@@ -27,8 +27,8 @@ module Ckb
 
     def self.json_script_to_hash(script)
       s = Ckb::Blake2b.new
-      if script[:reference]
-        s << hex_to_bin(script[:reference])
+      if script[:binary_hash]
+        s << hex_to_bin(script[:binary_hash])
       end
       (script[:args] || []).each do |arg|
         s << arg
@@ -112,8 +112,8 @@ module Ckb
 
     def self.calculate_script_capacity(script)
       capacity = 1 + (script[:args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
-      if script[:reference]
-        capacity += Ckb::Utils.hex_to_bin(script[:reference]).bytesize
+      if script[:binary_hash]
+        capacity += Ckb::Utils.hex_to_bin(script[:binary_hash]).bytesize
       end
       capacity
     end

@@ -388,7 +388,7 @@ module Ckb
     def verify_script_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        binary_hash: api.mruby_cell_hash,
         args: [
           VERIFY_SCRIPT,
           # We could of course just hash raw bytes, but since right now CKB

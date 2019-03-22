@@ -27,7 +27,7 @@ module Ckb
     def lock_json_object(pubkey)
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        binary_hash: api.mruby_cell_hash,
         args: [
           account_wallet ? UNLOCK_SINGLE_CELL_SCRIPT : UNLOCK_SCRIPT,
           name,
@@ -39,7 +39,7 @@ module Ckb
     def type_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        binary_hash: api.mruby_cell_hash,
         args: [
           CONTRACT_SCRIPT,
           name,
@@ -108,7 +108,7 @@ module Ckb
     def genesis_lock_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        binary_hash: api.mruby_cell_hash,
         args: [
           Ckb::FIXED_AMOUNT_GENESIS_UNLOCK_SCRIPT,
           input_hash,
@@ -126,7 +126,7 @@ module Ckb
     def lock_json_object(pubkey)
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        binary_hash: api.mruby_cell_hash,
         args: [
           UNLOCK_SINGLE_CELL_SCRIPT,
           input_hash,
@@ -138,7 +138,7 @@ module Ckb
     def type_json_object
       {
         version: 0,
-        reference: api.mruby_cell_hash,
+        binary_hash: api.mruby_cell_hash,
         args: [
           Ckb::FIXED_AMOUNT_CONTRACT_SCRIPT,
           input_hash,

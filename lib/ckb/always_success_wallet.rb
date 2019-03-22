@@ -100,7 +100,7 @@ module Ckb
     def lock_script_json_object
       {
         version: 0,
-        reference: api.always_success_cell_hash,
+        binary_hash: api.always_success_cell_hash,
         args: []
       }
     end
