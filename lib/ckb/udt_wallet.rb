@@ -24,58 +24,55 @@ module Ckb
       @account_wallet = account_wallet
     end
 
-    def unlock_script_json_object(pubkey)
+    def lock_json_object(pubkey)
       {
         version: 0,
         reference: api.mruby_cell_hash,
-        signed_args: [
+        args: [
           account_wallet ? UNLOCK_SINGLE_CELL_SCRIPT : UNLOCK_SCRIPT,
           name,
           pubkey
-        ],
-        args: []
+        ]
       }
     end
 
-    def contract_script_json_object
+    def type_json_object
       {
         version: 0,
         reference: api.mruby_cell_hash,
-        signed_args: [
+        args: [
           CONTRACT_SCRIPT,
           name,
           pubkey
-        ],
-        args: []
+        ]
       }
     end
 
     def to_json
       {
-        api: api.uri.to_s,
         name: name,
         pubkey: pubkey,
-        account_wallet: account_wallet
+        account_wallet: account_wallet,
       }.to_json
     end
 
-    def self.from_json(json)
+    def self.from_json(api, json)
       o = JSON.parse(json, symbolize_names: true)
-      TokenInfo.new(Ckb::Api.new(host: o[:api]), o[:name], o[:pubkey], o[:account_wallet])
+      TokenInfo.new(api, o[:name], o[:pubkey], o[:account_wallet])
     end
   end
 
   class FixedAmountTokenInfo
     attr_reader :api
     attr_reader :input_hash
-    attr_reader :lock_hash
+    attr_reader :issuer_lock
     attr_reader :pubkey
     attr_reader :rate
 
-    def initialize(api, input_hash, lock_hash, pubkey, rate)
+    def initialize(api, input_hash, issuer_lock, pubkey, rate)
       @api = api
       @input_hash = input_hash
-      @lock_hash = lock_hash
+      @issuer_lock = issuer_lock
       @pubkey = pubkey
       @rate = rate
     end
@@ -85,17 +82,19 @@ module Ckb
     end
 
     def fetch_cell
-      hash = genesis_unlock_type_hash
+      hash = Ckb::Utils.json_script_to_hash(genesis_lock_json_object)
       to = api.get_tip_number
       results = []
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_type_hash(hash, current_from, current_to)
+        cells = api.get_cells_by_lock_hash(hash, current_from, current_to)
         cells_with_data = cells.map do |cell|
           tx = api.get_transaction(cell[:out_point][:hash])
           amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
-          cell.merge(amount: amount)
+          args = cell[:lock][:args].map { |arg| arg.pack("c*") }
+          lock = cell[:lock].merge(args: args)
+          cell.merge(amount: amount, lock: lock)
         end
         results.concat(cells_with_data)
         current_from = current_to + 1
@@ -106,76 +105,60 @@ module Ckb
       results[0]
     end
 
-    def genesis_unlock_type_hash
-      Ckb::Utils.json_script_to_type_hash(genesis_unlock_script_json_object)
-    end
-
-    def genesis_unlock_script_json_object
+    def genesis_lock_json_object
       {
         version: 0,
         reference: api.mruby_cell_hash,
-        signed_args: [
+        args: [
           Ckb::FIXED_AMOUNT_GENESIS_UNLOCK_SCRIPT,
-          rate.to_s,
-          lock_hash,
-          pubkey
-        ],
-        args: []
-      }
-    end
-
-    def genesis_contract_script_json_object
-      {
-        version: 0,
-        reference: api.mruby_cell_hash,
-        signed_args: [
-          Ckb::FIXED_AMOUNT_CONTRACT_SCRIPT,
           input_hash,
+          rate.to_s,
+          Ckb::Utils.json_script_to_hash(issuer_lock),
           pubkey
-        ],
-        args: []
+        ]
       }
     end
 
-    def unlock_script_json_object(pubkey)
+    def genesis_type_json_object
+      type_json_object
+    end
+
+    def lock_json_object(pubkey)
       {
         version: 0,
         reference: api.mruby_cell_hash,
-        signed_args: [
+        args: [
           UNLOCK_SINGLE_CELL_SCRIPT,
           input_hash,
           pubkey
-        ],
-        args: []
+        ]
       }
     end
 
-    def contract_script_json_object
+    def type_json_object
       {
         version: 0,
         reference: api.mruby_cell_hash,
-        signed_args: [
+        args: [
           Ckb::FIXED_AMOUNT_CONTRACT_SCRIPT,
           input_hash,
           pubkey
-        ],
-        args: []
+        ]
       }
     end
 
     def to_json
       {
-        api: api.uri.to_s,
         input_hash: input_hash,
-        lock_hash: lock_hash,
+        issuer_lock: issuer_lock,
         pubkey: pubkey,
         rate: rate
       }.to_json
     end
 
-    def self.from_json(json)
+    def self.from_json(api, json)
       o = JSON.parse(json, symbolize_names: true)
-      FixedAmountTokenInfo.new(Ckb::Api.new(host: o[:api]), o[:input_hash], o[:lock_hash], o[:pubkey], o[:rate])
+      FixedAmountTokenInfo.new(api, o[:input_hash], o[:issuer_lock], o[:pubkey], o[:rate])
     end
   end
 
@@ -203,16 +186,12 @@ module Ckb
       Ckb::Wallet.new(api, privkey)
     end
 
-    def address
-      unlock_type_hash
+    def lock
+      token_info.lock_json_object(pubkey)
     end
 
-    def unlock_type_hash
-      Ckb::Utils.json_script_to_type_hash(token_info.unlock_script_json_object(pubkey))
-    end
-
-    def contract_type_hash
-      Ckb::Utils.json_script_to_type_hash(token_info.contract_script_json_object)
+    def lock_hash
+      Ckb::Utils.json_script_to_hash(token_info.lock_json_object(pubkey))
     end
 
     def get_transaction(hash_hex)
@@ -228,16 +207,14 @@ module Ckb
     end
 
     def get_unspent_cells
-      hash = unlock_type_hash
+      hash = lock_hash
       to = api.get_tip_number
       results = []
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_type_hash(hash, current_from, current_to)
-        cells_with_data = cells.select do |cell|
-          cell[:lock] == address
-        end.map do |cell|
+        cells = api.get_cells_by_lock_hash(hash, current_from, current_to)
+        cells_with_data = cells.map do |cell|
           tx = get_transaction(cell[:out_point][:hash])
           amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
           cell.merge(amount: amount)
@@ -257,16 +234,15 @@ module Ckb
     # Generate a partial tx which provides CKB coins in exchange for UDT tokens.
     # UDT sender should use +send_amount+ to fill in the other part
     def generate_partial_tx_for_udt_cell(token_amount, udt_cell_capacity, exchange_capacity)
-      output = generate_output(address, token_amount, udt_cell_capacity)
+      output = generate_output(lock, token_amount, udt_cell_capacity)
       wallet.sign_capacity_for_udt_cell(udt_cell_capacity + exchange_capacity, output)
     end
 
     def send_amount(amount, partial_tx)
       outputs = partial_tx[:outputs]
       inputs = partial_tx[:inputs].map do |input|
-        args = input[:unlock][:args] + [outputs.length.times.to_a.join(",")]
-        unlock = input[:unlock].merge(args: args)
-        input.merge(unlock: unlock)
+        args = input[:args] + [outputs.length.times.to_a.join(",")]
+        input.merge(args: args)
       end
 
       i = gather_inputs(amount)
@@ -284,21 +260,21 @@ module Ckb
         outputs << {
           capacity: i.capacities,
           data: [i.amounts - amount].pack("Q<"),
-          lock: address,
-          type: token_info.contract_script_json_object
+          lock: lock,
+          type: token_info.type_json_object
         }
         if spare_cell_capacity > MIN_CELL_CAPACITY
           outputs << {
             capacity: spare_cell_capacity,
             data: "",
-            lock: wallet.address
+            lock: wallet.lock
           }
         end
       else
         outputs << {
           capacity: i.capacities + spare_cell_capacity,
           data: "",
-          lock: wallet.address
+          lock: wallet.lock
         }
       end
 
@@ -307,7 +283,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: inputs + self_inputs,
-        outputs: outputs
+        outputs: outputs,
+        embeds: []
       }
       api.send_transaction(tx)
     end
@@ -323,7 +300,7 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          unlock: token_info.unlock_script_json_object(pubkey)
+          unlock: token_info.lock_json_object(pubkey)
         }
         inputs << input
         input_capacity += cell[:capacity]
@@ -334,7 +311,7 @@ module Ckb
           capacity: total_capacity,
           data: [total_amount].pack("Q<"),
           lock: wallet.udt_cell_wallet(token_info).address,
-          type: token_info.contract_script_json_object
+          type: token_info.type_json_object
         }
       ]
       tx = {
@@ -347,12 +324,12 @@ module Ckb
     end
 
     private
-    def generate_output(udt_address, amount, capacity)
+    def generate_output(udt_lock, amount, capacity)
       output = {
         capacity: capacity,
         data: [amount].pack("Q<"),
-        lock: udt_address,
-        type: token_info.contract_script_json_object
+        lock: udt_lock,
+        type: token_info.type_json_object
       }
 
       min_capacity = Ckb::Utils.calculate_cell_min_capacity(output)
@@ -373,7 +350,7 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          unlock: token_info.unlock_script_json_object(pubkey)
+          args: []
         }
         inputs << input
         input_capacities += cell[:capacity]
@@ -409,7 +386,12 @@ module Ckb
       when 0
         raise "Please create udt cell wallet first!"
       when 1
-        cells[0]
+        cell = cells[0]
+        args = cell[:lock][:args].map do |arg|
+          arg.pack("c*")
+        end
+        lock = cell[:lock].merge(args: args)
+        cell.merge(lock: lock)
       else
         raise "There's more than one cell for this UDT! You can use merge_cells in UdtWallet to merge them into one"
       end
@@ -429,21 +411,21 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          unlock: token_info.unlock_script_json_object(pubkey)
+          args: []
         }
       ]
       outputs = [
         {
           capacity: cell[:capacity],
           data: [cell[:amount] - amount].pack("Q<"),
-          lock: address,
-          type: token_info.contract_script_json_object
+          lock: lock,
+          type: token_info.type_json_object
         },
         {
           capacity: target_cell[:capacity],
           data: [target_cell[:amount] + amount].pack("Q<"),
           lock: target_cell[:lock],
-          type: token_info.contract_script_json_object
+          type: token_info.type_json_object
         }
       ]
       signed_inputs = Ckb::Utils.sign_sighash_all_anyonecanpay_inputs(inputs, outputs, privkey)
@@ -453,13 +435,14 @@ module Ckb
           hash: target_cell[:out_point][:hash],
           index: target_cell[:out_point][:index]
         },
-        unlock: target_wallet.token_info.unlock_script_json_object(target_wallet.pubkey),
+        args: []
       }
       tx = {
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + [target_input],
-        outputs: outputs
+        outputs: outputs,
+        embeds: []
       }
       api.send_transaction(tx)
     end
