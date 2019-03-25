@@ -25,7 +25,7 @@ module Ckb
     end
 
     def self.json_script_to_type_hash(script)
-      s = SHA3::Digest::SHA256.new
+      s = Ckb::Blake2b.new
       if script[:reference]
         s << hex_to_bin(script[:reference])
       end
@@ -43,7 +43,7 @@ module Ckb
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       inputs.map do |input|
         sighash_type = 0x84.to_s
-        s = SHA3::Digest::SHA256.new
+        s = Ckb::Blake2b.new
         s.update(sighash_type)
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
@@ -69,7 +69,7 @@ module Ckb
       key = Secp256k1::PrivateKey.new(privkey: privkey)
       inputs.map do |input|
         sighash_type = 0x81.to_s
-        s = SHA3::Digest::SHA256.new
+        s = Ckb::Blake2b.new
         s.update(sighash_type)
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
@@ -91,7 +91,7 @@ module Ckb
     end
 
     def self.sign_sighash_all_inputs(inputs, outputs, privkey)
-      s = SHA3::Digest::SHA256.new
+      s = Ckb::Blake2b.new
       sighash_type = 0x1.to_s
       s.update(sighash_type)
       inputs.each do |input|
@@ -127,7 +127,7 @@ module Ckb
         if type[:binary]
           capacity += type[:binary].bytesize
         end
-        capacity += (type[:signed_args] || []).map { |arg| arg.bytesize }.reduce(&:+)
+        capacity += (type[:signed_args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
       end
       capacity
     end
@@ -143,8 +143,8 @@ module Ckb
         input[:unlock][:signed_args] = input[:unlock][:signed_args].map do |arg|
           Ckb::Utils.bin_to_prefix_hex(arg)
         end
-        if input[:binary]
-          input[:binary] = Ckb::Utils.bin_to_prefix_hex(input[:binary])
+        if input[:unlock][:binary]
+          input[:unlock][:binary] = Ckb::Utils.bin_to_prefix_hex(input[:unlock][:binary])
         end
       end
       transaction[:outputs].each do |output|

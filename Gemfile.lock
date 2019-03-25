@@ -6,9 +6,13 @@ GEM
     coderay (1.1.2)
     ffi (1.9.25)
     method_source (0.9.1)
+    minitest (5.11.3)
     pry (0.12.0)
       coderay (~> 1.1.0)
       method_source (~> 0.9.0)
+    rake (12.3.2)
+    rbnacl (6.0.1)
+      ffi
     sha3 (1.0.1)
 
 PLATFORMS
@@ -16,8 +20,11 @@ PLATFORMS
 
 DEPENDENCIES
   bitcoin-secp256k1 (~> 0.5.0)
+  minitest (~> 5.11, >= 5.11.3)
   pry
+  rake (~> 12.3, >= 12.3.2)
+  rbnacl (~> 6.0, >= 6.0.1)
   sha3
 
 BUNDLED WITH
-   1.17.2
+   1.17.3

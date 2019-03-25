@@ -16,7 +16,7 @@ There's only one required step you need to perform: make sure the miner process 
 
 ```bash
 $ ./target/release/ckb cli type_hash
-0x0da2fe99fe549e082d4ed483c2e968a89ea8d11aabf5d79e5cbf06522de6e674
+0x8954a4ac5e5c33eb7aa8bb91e0a000179708157729859bd8cf7e2278e1e12980
 ```
 
 Note that you might need to adjust this command if:
@@ -24,7 +24,7 @@ Note that you might need to adjust this command if:
 1. You are building debug version instead of release version
 2. You use a custom config file.
 
-Then locate `default.json` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change.
+Then locate `default.toml` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change.
 
 There're also optional steps here which would help you when you are using the SDK but not required:
 
@@ -32,13 +32,14 @@ There're also optional steps here which would help you when you are using the SD
 
 By default, CKB is running Cuckoo POW algorithm, depending on the computing power your machine has, this might slow things down.
 
-To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `spec/dev.json` file in your config directory, nagivate to `pow` section, and change the config to the following:
+To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `spec/dev.toml` file in your config directory, nagivate to `pow` section, and change the config to the following:
 
-```json
-"pow": {
-  "Dummy": null
-}
+```toml
+[pow]
+func = "Dummy"
 ```
+
+Then delete `[pow.params]`
 
 This way you will be using Dummy POW mode, note that if you have run CKB before, you need to clean data directory (which is `nodes/default` by default) and restart CKB process as well as miner process.
 
@@ -46,10 +47,10 @@ This way you will be using Dummy POW mode, note that if you have run CKB before,
 
 By default, CKB issues 50000 capacities to a block, however, since we will need to install a binary which is roughly 1.6MB here, it might take quite a while for CKB to miner enough capacities. So you might want to enlarge miner reward to speedup this process.
 
-To do this, locate `spec/dev.json` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
+To do this, locate `spec/dev.toml` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
 
-```json
-"initial_block_reward": 5000000
+```toml
+initial_block_reward = 5000000
 ```
 
 Note that if you have run CKB before, you need to clean data directory (which is `nodes/default` by default) and restart CKB process as well as miner process.
@@ -58,10 +59,10 @@ Note that if you have run CKB before, you need to clean data directory (which is
 
 By default CKB doesn't emit any debug log entries, but when you are playing with the SDK, chances are you will be interested in certain debug logs.
 
-To change this, locate `default.json` file in your config directory, navigate to `logger` section, and adjust `filter` field to the following:
+To change this, locate `default.toml` file in your config directory, navigate to `logger` section, and adjust `filter` field to the following:
 
-```json
-"filter": "info,chain=debug,script=debug",
+```toml
+filter = "info,chain=debug,script=debug"
 ```
 
 Now when you restart your CKB main process, you will have debug log entries from `chain` and `script` modules, which will be quite useful when you play with this SDK.
@@ -80,7 +81,7 @@ $ bundle exec pry -r ./lib/ckb/wallet.rb
 28
 ```
 
-Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem, which requires manual install of secp256k1 library. Follow the [prerequisite](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) part in the gem to install secp256k1 library locally.
+Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem and the [rbnacl](https://github.com/crypto-rb/rbnacl) gem, which require manual install of secp256k1 and libsodium library. Follow [this](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) and [this](https://github.com/crypto-rb/rbnacl#installation) to install them locally.
 
 In the Ruby shell, we can start playing with the SDK.
 

@@ -1,9 +1,9 @@
 require_relative 'utils'
+require_relative 'blake2b'
 
 require 'json'
 require 'net/http'
 require 'uri'
-require 'sha3'
 
 module Ckb
   URL = "http://localhost:8114"
@@ -35,7 +35,7 @@ module Ckb
       result
     end
 
-    # Returns a default secp256k1-sha3 input unlock contract included in CKB
+    # Returns a default secp256k1-blake2b input unlock contract included in CKB
     def always_success_out_point
       {
         hash: genesis_block[:commit_transactions][0][:hash],
@@ -44,7 +44,7 @@ module Ckb
     end
 
     def always_success_cell_hash
-      hash_bin = SHA3::Digest::SHA256.digest(
+      hash_bin = Ckb::Blake2b.digest(
         Ckb::Utils.hex_to_bin(genesis_block[:commit_transactions][0][:outputs][0][:data])
       )
       Ckb::Utils.bin_to_prefix_hex(hash_bin)
@@ -88,9 +88,15 @@ module Ckb
       rpc_request("get_block", params: [block_hash_hex])[:result]
     end
 
-    def get_tip_number
-      rpc_request("get_tip_header")[:result][:number]
+    def get_tip_header
+      rpc_request("get_tip_header")[:result]
     end
+
+    def get_tip_block_number
+      rpc_request("get_tip_block_number")[:result]
+    end
+
+    alias get_tip_number get_tip_block_number
 
     def get_cells_by_type_hash(hash_hex, from, to)
       params = [hash_hex, from, to]
@@ -113,6 +119,19 @@ module Ckb
     def send_transaction(transaction)
       transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
       rpc_request("send_transaction", params: [transaction])[:result]
+    end
+
+    def local_node_info
+      rpc_request("local_node_info")[:result]
+    end
+
+    def trace_transaction(transaction)
+      transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
+      rpc_request("trace_transaction", params: [transaction])[:result]
+    end
+
+    def get_transaction_trace(hash)
+      rpc_request("get_transaction_trace", params: [hash])[:result]
     end
   end
 end

@@ -2,6 +2,8 @@ require_relative "api"
 require_relative "always_success_wallet"
 require_relative "udt_wallet"
 require_relative "utils"
+require_relative "version"
+require_relative "blake2b"
 
 require "secp256k1"
 require "securerandom"
@@ -157,7 +159,7 @@ module Ckb
       i = gather_inputs(capacity, MIN_CELL_CAPACITY)
       input_capacities = i.capacities
 
-      ms = SHA3::Digest::SHA256.new
+      ms = Ckb::Blake2b.new
       i.inputs.each do |input|
         ms.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         ms.update(input[:previous_output][:index].to_s)
@@ -188,7 +190,7 @@ module Ckb
         }
       end
 
-      s = SHA3::Digest::SHA256.new
+      s = Ckb::Blake2b.new
       contract_type_hash_bin = Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(outputs[0][:type]))
       s.update(contract_type_hash_bin)
       i.inputs.each do |input|
@@ -299,7 +301,7 @@ module Ckb
       input_capacities = i.capacities
 
       data = [tokens].pack("Q<")
-      s = SHA3::Digest::SHA256.new
+      s = Ckb::Blake2b.new
       s.update(Ckb::Utils.hex_to_bin(wallet.contract_type_hash))
       s.update(data)
       key = Secp256k1::PrivateKey.new(privkey: privkey)
