@@ -32,8 +32,7 @@ module Ckb
         version: 0,
         deps: [api.always_success_out_point],
         inputs: i.inputs,
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       api.send_transaction(tx)
     end
@@ -64,8 +63,7 @@ module Ckb
         version: 0,
         deps: [api.always_success_out_point],
         inputs: i.inputs,
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       hash = api.send_transaction(tx)
       {

@@ -283,8 +283,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: inputs + self_inputs,
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       api.send_transaction(tx)
     end
@@ -441,8 +440,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + [target_input],
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       api.send_transaction(tx)
     end

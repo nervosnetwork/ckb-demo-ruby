@@ -67,8 +67,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
     end
 
@@ -138,8 +137,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       hash = api.send_transaction(tx)
       # This is in fact an OutPoint here
@@ -212,8 +210,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: info)
@@ -283,8 +280,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       api.send_transaction(tx)
     end
@@ -326,8 +322,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs,
-        embeds: []
+        outputs: outputs
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: token_info)
@@ -390,7 +385,6 @@ module Ckb
         version: 0,
         binary_hash: api.mruby_cell_hash,
         args: [
-          VERIFY_SCRIPT,
           # We could of course just hash raw bytes, but since right now CKB
           # CLI already uses this scheme, we stick to the same way for compatibility
           Ckb::Utils.bin_to_hex(pubkey_hash_bin)
