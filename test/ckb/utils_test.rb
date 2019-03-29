@@ -23,19 +23,16 @@ class Ckb::UtilsTest < Minitest::Test
     output = {
       capacity: 5000000,
       data: "",
-      lock: "0da2fe99fe549e082d4ed483c2e968a89ea8d11aabf5d79e5cbf06522de6e674",
-      type: {
+      lock: {
         args: [],
-        binary: "0100000000000000",
-        reference: nil,
-        signed_args: [],
+        binary_hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
         version: 0
       }
     }
 
-    min_capacity = 57
+    min_capacity = 41
 
-    assert Ckb::Utils.calculate_cell_min_capacity(output), min_capacity
+    assert_equal Ckb::Utils.calculate_cell_min_capacity(output), min_capacity
   end
 
   def test_normalize_tx_for_json
@@ -48,20 +45,18 @@ class Ckb::UtilsTest < Minitest::Test
               hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
               index: 4294967295
           },
-          unlock: {
-              args: [],
-              binary: "0x0100000000000000",
-              reference: nil,
-              signed_args: [],
-              version: 0
-          }
+          args: []
         }
       ],
       outputs: [
         {
           capacity: 5000000,
           data: "0x",
-          lock: "0x0da2fe99fe549e082d4ed483c2e968a89ea8d11aabf5d79e5cbf06522de6e674",
+          lock: {
+            args: ["0x616263"],
+            binary_hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            version: 0
+          },
           type: nil
         }
       ]
@@ -76,20 +71,18 @@ class Ckb::UtilsTest < Minitest::Test
               hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
               index: 4294967295
           },
-          unlock: {
-              args: [],
-              binary: ["0100000000000000"].pack("H*"),
-              reference: nil,
-              signed_args: [],
-              version: 0
-          }
+          args: []
         }
       ],
       outputs: [
         {
           capacity: 5000000,
           data: "",
-          lock: "0x0da2fe99fe549e082d4ed483c2e968a89ea8d11aabf5d79e5cbf06522de6e674",
+          lock: {
+            args: ["abc"],
+            binary_hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            version: 0
+          },
           type: nil
         }
       ]
