@@ -10,7 +10,7 @@ module Ckb
       @api = api
     end
 
-    def send_capacity(target_address, capacity)
+    def send_capacity(target_lock, capacity)
       i = gather_inputs(capacity, MIN_CELL_CAPACITY)
       input_capacities = i.capacities
 
@@ -18,14 +18,14 @@ module Ckb
         {
           capacity: capacity,
           data: "",
-          lock: target_address
+          lock: target_lock
         }
       ]
       if input_capacities > capacity
         outputs << {
           capacity: input_capacities - capacity,
           data: "",
-          lock: self.address
+          lock: lock_script_json_object
         }
       end
       tx = {
@@ -37,13 +37,13 @@ module Ckb
       api.send_transaction(tx)
     end
 
-    def install_mruby_cell!(processed_mruby_cell_filename)
-      data = File.read(processed_mruby_cell_filename)
+    def install_mruby_cell!(mruby_cell_filename)
+      data = File.read(mruby_cell_filename)
       cell_hash = Ckb::Utils.bin_to_prefix_hex(Ckb::Blake2b.digest(data))
       output = {
         capacity: 0,
         data: data,
-        lock: address
+        lock: lock_script_json_object
       }
       output[:capacity] = Ckb::Utils.calculate_cell_min_capacity(output)
 
@@ -55,7 +55,7 @@ module Ckb
         outputs << {
           capacity: input_capacities - output[:capacity],
           data: "",
-          lock: address
+          lock: lock_script_json_object
         }
       end
 
@@ -90,20 +90,15 @@ module Ckb
       get_unspent_cells.map { |c| c[:capacity] }.reduce(0, &:+)
     end
 
-    def address
-      unlock_type_hash
-    end
-
     private
-    def unlock_type_hash
-      @__unlock_type_hash ||= Ckb::Utils.json_script_to_type_hash(unlock_script_json_object)
+    def lock_hash
+      @__lock_hash ||= Ckb::Utils.json_script_to_hash(lock_script_json_object)
     end
 
-    def unlock_script_json_object
+    def lock_script_json_object
       {
         version: 0,
-        reference: api.always_success_cell_hash,
-        signed_args: [],
+        binary_hash: api.always_success_cell_hash,
         args: []
       }
     end
@@ -114,7 +109,7 @@ module Ckb
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_type_hash(unlock_type_hash, current_from, current_to)
+        cells = api.get_cells_by_lock_hash(lock_hash, current_from, current_to)
         results.concat(cells)
         current_from = current_to + 1
       end
@@ -134,7 +129,7 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          unlock: unlock_script_json_object
+          args: []
         }
         inputs << input
         input_capacities += cell[:capacity]

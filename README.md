@@ -12,21 +12,7 @@ If you don't want to build mruby-contracts yourself, we have a prebuilt binary a
 
 First, follow the [README](https://github.com/nervosnetwork/ckb/blob/develop/README.md) steps to make sure CKB is up and running.
 
-There's only one required step you need to perform: make sure the miner process is using the correct type hash. To do this, first make sure you are in CKB's repo directory, and use the following command:
-
-```bash
-$ ./target/release/ckb cli type_hash
-0x8954a4ac5e5c33eb7aa8bb91e0a000179708157729859bd8cf7e2278e1e12980
-```
-
-Note that you might need to adjust this command if:
-
-1. You are building debug version instead of release version
-2. You use a custom config file.
-
-Then locate `default.toml` file in your config directory, navigate to miner section, change `type_hash` field to the value you get in the above command. Notice you will need to restart miner process after this change.
-
-There're also optional steps here which would help you when you are using the SDK but not required:
+There're optional steps here which would help you when you are using the SDK but not required:
 
 ### Use Dummy POW mode
 
@@ -87,22 +73,11 @@ In the Ruby shell, we can start playing with the SDK.
 
 ### Install mruby contract
 
-First, we will need the `argv_source_entry` file as mentioned in `Prerequisite` section and preprocess it a bit. The following steps assume that the file and the processed file are all in directory `/path/to/`:
-
-```bash
-$ git clone https://github.com/nervosnetwork/ckb-binary-to-script
-$ cd ckb-binary-to-script
-$ cargo build
-$ ./target/debug/ckb-binary-to-script < /path/to/argv_source_entry > /path/to/processed_argv_source_entry
-```
-
-Notice this preprocessing step is only needed since Ruby doesn't have a FlatBuffers implementation, for another language, we can build this preprocessing step directly in the SDK.
-
-Then we can install this mruby contract into CKB:
+We will need the `argv_source_entry` file as mentioned in `Prerequisite` section, then we can install this mruby contract into CKB:
 
 ```ruby
 [1] pry(main)> asw = Ckb::AlwaysSuccessWallet.new(api)
-[2] pry(main)> conf = asw.install_mruby_cell!("/path/to/processed_argv_source_entry")
+[2] pry(main)> conf = asw.install_mruby_cell!("/path/to/argv_source_entry")
 => {:out_point=>{:hash=>"0x20b849ffe67eb5872eca0d68fff1de193f07354ea903948ade6a3c170d89e282", :index=>0},
  :cell_hash=>"0x03dba46071a6702b39c1e626f469b4ed9460ed0ad92cf2e21456c34e1e2b04fd"}
 [3] pry(main)> asw.configuration_installed?(conf)
@@ -135,7 +110,7 @@ To play with wallets, first we need to add some capacities to a wallet:
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> bob.get_balance
 => 0
-[3] pry(main)> asw.send_capacity(bob.address, 100000)
+[3] pry(main)> asw.send_capacity(bob.lock, 100000)
 [4] pry(main)> # wait a while
 [5] pry(main)> bob.get_balance
 => 100000
@@ -150,7 +125,7 @@ Now we can perform normal transfers between wallets:
 => 100000
 [4] pry(main)> alice.get_balance
 => 0
-[5] pry(main)> bob.send_capacity(alice.address, 12345)
+[5] pry(main)> bob.send_capacity(alice.lock, 12345)
 => "0xd7abc1407eb07d334fea86ef0e9b12b2273833137327c2a53f2d8ba1be1e4d85"
 [6] pry(main)> # wait for some time
 [7] pry(main)> alice.get_balance
@@ -171,12 +146,6 @@ Ruby SDK here provides an easy way to create a token from an existing wallet
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> token_info = bob.created_token_info("Token 1")
-=> #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
-[4] pry(main)> # token info represents the meta data for a token
-[5] pry(main)> # we can assemble a wallet for user defined token with token info structure
-[6] pry(main)> bob_token1 = bob.udt_wallet(token_info)
-[7] pry(main)> alice_token1 = alice.udt_wallet(token_info)
 ```
 
 Now we can create this token from a user with CKB capacities(since the cell used to hold the tokens will take some capacity):
@@ -185,10 +154,16 @@ Now we can create this token from a user with CKB capacities(since the cell used
 [9] pry(main)> bob.get_balance
 => 87655
 [10] pry(main)> # here we are creating 10000000 tokens for "Token 1", we put those tokens in a cell with 10000 CKB capacity
-[11] pry(main)> bob.create_udt_token(10000, "Token 1", 10000000)
-[12] pry(main)> bob_token1.get_balance
+[11] pry(main)> result = bob.create_udt_token(10000, "Token 1", 10000000)
+[12] pry(main)> token_info = result.token_info
+=> #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
+[13] pry(main)> # token info represents the meta data for a token
+[14] pry(main)> # we can assemble a wallet for user defined token with token info structure
+[15] pry(main)> bob_token1 = bob.udt_wallet(token_info)
+[16] pry(main)> alice_token1 = alice.udt_wallet(token_info)
+[17] pry(main)> bob_token1.get_balance
 => 10000000
-[13] pry(main)> alice_token1.get_balance
+[18] pry(main)> alice_token1.get_balance
 => 0
 ```
 
@@ -216,10 +191,10 @@ The following code fulfills this step:
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> token_info2 = bob.created_token_info("Token 2", account_wallet: true)
-[4] pry(main)> bob_cell_token2 = bob.udt_account_wallet(token_info2)
-[5] pry(main)> alice_cell_token2 = alice.udt_account_wallet(token_info2)
-[6] pry(main)> bob.create_udt_token(10000, "Token 2", 10000000, account_wallet: true)
+[3] pry(main)> result = bob.create_udt_token(10000, "Token 2", 10000000, account_wallet: true)
+[4] pry(main)> token_info2 = result.token_info
+[5] pry(main)> bob_cell_token2 = bob.udt_account_wallet(token_info2)
+[6] pry(main)> alice_cell_token2 = alice.udt_account_wallet(token_info2)
 [7] pry(main)> alice.create_udt_account_wallet_cell(3010, token_info2)
 [8] pry(main)> bob_cell_token2.send_tokens(12345, alice_cell_token2)
 [9] pry(main)> bob_cell_token2.get_balance
@@ -239,7 +214,7 @@ We have also designed a user defined token with a fixed upper cap. For this type
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
 # Create a genesis UDT cell with 10000 capacity, the UDT has a fixed amount of 10000000.
 # The initial exchange rate is 1 capacity for 5 tokens.
-[3] pry(main)> result = alice.create_fixed_amount_token(10000, 10000000, 5)
+[3] pry(main)> result = bob.create_fixed_amount_token(10000, 10000000, 5)
 [4] pry(main)> fixed_token_info = result.token_info
 # Creates a UDT wallet that uses only one cell, the cell has a capacity of 11111
 [5] pry(main)> alice.create_udt_account_wallet_cell(11111, fixed_token_info)

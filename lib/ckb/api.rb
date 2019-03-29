@@ -98,9 +98,9 @@ module Ckb
 
     alias get_tip_number get_tip_block_number
 
-    def get_cells_by_type_hash(hash_hex, from, to)
+    def get_cells_by_lock_hash(hash_hex, from, to)
       params = [hash_hex, from, to]
-      rpc_request("get_cells_by_type_hash", params: params)[:result]
+      rpc_request("get_cells_by_lock_hash", params: params)[:result]
     end
 
     def get_transaction(tx_hash_hex)
