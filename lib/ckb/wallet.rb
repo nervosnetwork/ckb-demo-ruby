@@ -67,7 +67,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
     end
 
@@ -101,7 +102,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_multiple_anyonecanpay_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
     end
 
@@ -137,7 +139,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       # This is in fact an OutPoint here
@@ -210,7 +213,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: info)
@@ -280,7 +284,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -322,7 +327,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: token_info)
