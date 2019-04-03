@@ -85,11 +85,12 @@ module Ckb
       end
     end
 
-    def self.sign_sighash_all_inputs(inputs, outputs, privkey)
+    def self.sign_sighash_all_inputs(i, outputs, privkey)
       s = Ckb::Blake2b.new
       sighash_type = 0x1.to_s
       s.update(sighash_type)
-      inputs.each do |input|
+      witnesses = []
+      i.inputs.each do |input|
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
       end
@@ -104,10 +105,12 @@ module Ckb
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
       signature_hex = Ckb::Utils.bin_to_hex(signature)
 
-      inputs.map do |input|
-        args = input[:args] + [signature_hex, sighash_type]
+      i.inputs = inputs.zip(i.pubkeys).map do |input, pubkey|
+        witnesses << [pubkey, signature_hex]
+        args = input[:args] + [sighash_type]
         input.merge(args: args)
       end
+      witnesses, inputs
     end
 
     def self.calculate_script_capacity(script)
@@ -145,6 +148,12 @@ module Ckb
           output[:type][:args] = output[:type][:args].map do |arg|
             Ckb::Utils.bin_to_prefix_hex(arg)
           end
+        end
+      end
+
+      transaction[:witnesses].each do |witness|
+        witness[:data] = witness[:data].map do |data|
+          Ckb::Utils.bin_to_prefix_hex(data)
         end
       end
       transaction
