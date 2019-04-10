@@ -30,7 +30,7 @@ module Ckb
       end
       tx = {
         version: 0,
-        deps: [api.always_success_out_point],
+        deps: [],
         inputs: i.inputs,
         outputs: outputs
       }
@@ -61,7 +61,7 @@ module Ckb
 
       tx = {
         version: 0,
-        deps: [api.always_success_out_point],
+        deps: [],
         inputs: i.inputs,
         outputs: outputs
       }
@@ -98,7 +98,7 @@ module Ckb
     def lock_script_json_object
       {
         version: 0,
-        binary_hash: api.always_success_cell_hash,
+        binary_hash: "0x0000000000000000000000000000000000000000000000000000000000000001",
         args: []
       }
     end
