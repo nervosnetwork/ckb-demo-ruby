@@ -35,21 +35,6 @@ module Ckb
       result
     end
 
-    # Returns a default secp256k1-blake2b input unlock contract included in CKB
-    def always_success_out_point
-      {
-        hash: genesis_block[:commit_transactions][0][:hash],
-        index: 0
-      }
-    end
-
-    def always_success_cell_hash
-      hash_bin = Ckb::Blake2b.digest(
-        Ckb::Utils.hex_to_bin(genesis_block[:commit_transactions][0][:outputs][0][:data])
-      )
-      Ckb::Utils.bin_to_prefix_hex(hash_bin)
-    end
-
     def set_configuration!(configuration)
       @mruby_out_point = configuration[:out_point]
       @mruby_cell_hash = configuration[:cell_hash]
