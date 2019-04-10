@@ -97,7 +97,6 @@ module Ckb
 
     def lock_script_json_object
       {
-        version: 0,
         binary_hash: "0x0000000000000000000000000000000000000000000000000000000000000001",
         args: []
       }
