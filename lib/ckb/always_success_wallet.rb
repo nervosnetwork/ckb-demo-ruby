@@ -32,7 +32,8 @@ module Ckb
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -63,7 +64,8 @@ module Ckb
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       {

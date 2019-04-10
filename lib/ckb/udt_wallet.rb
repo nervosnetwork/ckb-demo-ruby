@@ -278,7 +278,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: inputs + self_inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -312,7 +313,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -435,7 +437,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + [target_input],
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end

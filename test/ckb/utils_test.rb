@@ -59,6 +59,11 @@ class Ckb::UtilsTest < Minitest::Test
           },
           type: nil
         }
+      ],
+      witnesses: [
+        {
+          data: ["0x", "0x616263"]
+        }
       ]
     }
 
@@ -84,6 +89,11 @@ class Ckb::UtilsTest < Minitest::Test
             version: 0
           },
           type: nil
+        }
+      ],
+      witnesses: [
+        {
+          data: ["", "abc"]
         }
       ]
     }

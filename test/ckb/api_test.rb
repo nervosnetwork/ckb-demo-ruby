@@ -68,7 +68,8 @@ class Ckb::ApiTest < Minitest::Test
       version: 0,
       deps: [],
       inputs: [],
-      outputs: []
+      outputs: [],
+      witnesses: []
     }
 
     result = api.send_transaction(tx)
@@ -87,7 +88,8 @@ class Ckb::ApiTest < Minitest::Test
       version: 2,
       deps: [],
       inputs: [],
-      outputs: []
+      outputs: [],
+      witnesses: []
     }
     result = api.trace_transaction(tx)
     refute_nil result

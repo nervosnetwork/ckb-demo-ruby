@@ -63,11 +63,13 @@ module Ckb
           lock: lock
         }
       end
+      witnesses, inputs = Ckb::Utils.sign_sighash_all_inputs(i, outputs, privkey)
       {
         version: 0,
         deps: [api.mruby_out_point],
-        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        inputs: inputs,
+        outputs: outputs,
+        witnesses: witnesses
       }
     end
 
@@ -133,11 +135,13 @@ module Ckb
           lock: self.lock
         }
       end
+      witnesses, inputs = Ckb::Utils.sign_sighash_all_inputs(i, outputs, privkey)
       tx = {
         version: 0,
         deps: [api.mruby_out_point],
-        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        inputs: inputs,
+        outputs: outputs,
+        witnesses: witnesses
       }
       hash = api.send_transaction(tx)
       # This is in fact an OutPoint here
@@ -206,11 +210,14 @@ module Ckb
 
       outputs[0][:data] += signature
 
+      witnesses, inputs = Ckb::Utils.sign_sighash_all_inputs(i, outputs, privkey)
+
       tx = {
         version: 0,
         deps: [api.mruby_out_point],
-        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        inputs: inputs,
+        outputs: outputs,
+        witnesses: witnesses
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: info)
@@ -280,7 +287,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -318,11 +326,13 @@ module Ckb
           lock: self.lock
         }
       end
+      witnesses, inputs = Ckb::Utils.sign_sighash_all_inputs(i, outputs, privkey)
       tx = {
         version: 0,
         deps: [api.mruby_out_point],
-        inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        inputs: inputs,
+        outputs: outputs,
+        witnesses: witnesses
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: token_info)
@@ -348,14 +358,16 @@ module Ckb
 
       input_capacities = 0
       inputs = []
+      pubkeys = []
       get_unspent_cells.each do |cell|
         input = {
           previous_output: {
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          args: [pubkey]
+          args: []
         }
+        pubkeys << pubkey
         inputs << input
         input_capacities += cell[:capacity]
         if input_capacities >= capacity && (input_capacities - capacity) >= min_capacity
@@ -365,7 +377,7 @@ module Ckb
       if input_capacities < capacity
         raise "Not enough capacity!"
       end
-      OpenStruct.new(inputs: inputs, capacities: input_capacities)
+      OpenStruct.new(inputs: inputs, capacities: input_capacities, pubkeys: pubkeys)
     end
 
     def pubkey
