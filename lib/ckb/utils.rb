@@ -1,3 +1,4 @@
+# coding: utf-8
 require "secp256k1"
 
 module Ckb
@@ -24,16 +25,12 @@ module Ckb
       Secp256k1::PrivateKey.new(privkey: privkey_bin).pubkey.serialize
     end
 
-    def self.json_script_to_type_hash(script)
+    def self.json_script_to_hash(script)
       s = Ckb::Blake2b.new
-      if script[:reference]
-        s << hex_to_bin(script[:reference])
+      if script[:binary_hash]
+        s << hex_to_bin(script[:binary_hash])
       end
-      s << "|"
-      if script[:binary]
-        s << script[:binary]
-      end
-      (script[:signed_args] || []).each do |arg|
+      (script[:args] || []).each do |arg|
         s << arg
       end
       bin_to_prefix_hex(s.digest)
@@ -47,12 +44,11 @@ module Ckb
         s.update(sighash_type)
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
-        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
         outputs.each do |output|
           s.update(output[:capacity].to_s)
-          s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_hash(output[:lock])))
           if output[:type]
-            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:type])))
+            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_hash(output[:type])))
           end
         end
 
@@ -60,8 +56,8 @@ module Ckb
         signature_hex = Ckb::Utils.bin_to_hex(signature)
 
         # output(s) will be filled when assembling the transaction
-        unlock = input[:unlock].merge(args: [signature_hex, sighash_type])
-        input.merge(unlock: unlock)
+        args = input[:args] + [signature_hex, sighash_type]
+        input.merge(args: args)
       end
     end
 
@@ -73,20 +69,19 @@ module Ckb
         s.update(sighash_type)
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
-        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
         outputs.each do |output|
           s.update(output[:capacity].to_s)
-          s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_hash(output[:lock])))
           if output[:type]
-            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:type])))
+            s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_hash(output[:type])))
           end
         end
 
         signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
         signature_hex = Ckb::Utils.bin_to_hex(signature)
 
-        unlock = input[:unlock].merge(args: [signature_hex, sighash_type])
-        input.merge(unlock: unlock)
+        args = input[:args] + [signature_hex, sighash_type]
+        input.merge(args: args)
       end
     end
 
@@ -97,13 +92,12 @@ module Ckb
       inputs.each do |input|
         s.update(Ckb::Utils.hex_to_bin(input[:previous_output][:hash]))
         s.update(input[:previous_output][:index].to_s)
-        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(input[:unlock])))
       end
       outputs.each do |output|
         s.update(output[:capacity].to_s)
-        s.update(Ckb::Utils.hex_to_bin(output[:lock]))
+        s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_hash(output[:lock])))
         if output[:type]
-          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_type_hash(output[:type])))
+          s.update(Ckb::Utils.hex_to_bin(Ckb::Utils.json_script_to_hash(output[:type])))
         end
       end
       key = Secp256k1::PrivateKey.new(privkey: privkey)
@@ -111,23 +105,23 @@ module Ckb
       signature_hex = Ckb::Utils.bin_to_hex(signature)
 
       inputs.map do |input|
-        unlock = input[:unlock].merge(args: [signature_hex, sighash_type])
-        input.merge(unlock: unlock)
+        args = input[:args] + [signature_hex, sighash_type]
+        input.merge(args: args)
       end
     end
 
+    def self.calculate_script_capacity(script)
+      capacity = 1 + (script[:args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
+      if script[:binary_hash]
+        capacity += Ckb::Utils.hex_to_bin(script[:binary_hash]).bytesize
+      end
+      capacity
+    end
+
     def self.calculate_cell_min_capacity(output)
-      capacity = 8 + output[:data].bytesize + Ckb::Utils.hex_to_bin(output[:lock]).bytesize
+      capacity = 8 + output[:data].bytesize + calculate_script_capacity(output[:lock])
       if type = output[:type]
-        capacity += 1
-        capacity += (type[:args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
-        if type[:reference]
-          capacity += Ckb::Utils.hex_to_bin(type[:reference]).bytesize
-        end
-        if type[:binary]
-          capacity += type[:binary].bytesize
-        end
-        capacity += (type[:signed_args] || []).map { |arg| arg.bytesize }.reduce(0, &:+)
+        capacity += calculate_script_capacity(type)
       end
       capacity
     end
@@ -137,28 +131,19 @@ module Ckb
     # have to do type conversions here.
     def self.normalize_tx_for_json!(transaction)
       transaction[:inputs].each do |input|
-        input[:unlock][:args] = input[:unlock][:args].map do |arg|
+        input[:args] = input[:args].map do |arg|
           Ckb::Utils.bin_to_prefix_hex(arg)
-        end
-        input[:unlock][:signed_args] = input[:unlock][:signed_args].map do |arg|
-          Ckb::Utils.bin_to_prefix_hex(arg)
-        end
-        if input[:unlock][:binary]
-          input[:unlock][:binary] = Ckb::Utils.bin_to_prefix_hex(input[:unlock][:binary])
         end
       end
       transaction[:outputs].each do |output|
         output[:data] = Ckb::Utils.bin_to_prefix_hex(output[:data])
+        output[:lock][:args] = output[:lock][:args].map do |arg|
+          Ckb::Utils.bin_to_prefix_hex(arg)
+        end
 
         if output[:type]
           output[:type][:args] = output[:type][:args].map do |arg|
             Ckb::Utils.bin_to_prefix_hex(arg)
-          end
-          output[:type][:signed_args] = output[:type][:signed_args].map do |arg|
-            Ckb::Utils.bin_to_prefix_hex(arg)
-          end
-          if output[:type][:binary]
-            output[:type][:binary] = Ckb::Utils.bin_to_prefix_hex(output[:type][:binary])
           end
         end
       end
