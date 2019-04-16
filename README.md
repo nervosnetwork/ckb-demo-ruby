@@ -214,7 +214,7 @@ We have also designed a user defined token with a fixed upper cap. For this type
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-# Create a genesis UDT cell with 10000 capacity, the UDT has a fixed amount of 10000000.
+ # Create a genesis UDT cell with 20000 capacity, the UDT has a fixed amount of 10000000.
 # The initial exchange rate is 1 capacity for 5 tokens.
 [3] pry(main)> result = bob.create_fixed_amount_token(20000, 10000000, 5)
 [4] pry(main)> fixed_token_info = result.token_info
