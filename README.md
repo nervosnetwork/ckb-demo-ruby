@@ -221,7 +221,7 @@ We have also designed a user defined token with a fixed upper cap. For this type
 # Creates a UDT wallet that uses only one cell, the cell has a capacity of 11111
 [5] pry(main)> alice.create_udt_account_wallet_cell(11111, fixed_token_info)
 
-# Purchase 500 UDT tokens
+ # Purchase 50000 UDT tokens
 [6] pry(main)> alice.purchase_fixed_amount_token(50000, fixed_token_info)
 # Wait for a while here...
 [7] pry(main)> alice.udt_account_wallet(fixed_token_info).get_balance
