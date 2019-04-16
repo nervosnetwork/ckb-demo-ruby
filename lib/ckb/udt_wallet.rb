@@ -81,12 +81,12 @@ module Ckb
 
     def fetch_cell
       hash = Ckb::Utils.json_script_to_hash(genesis_lock_json_object)
-      to = api.get_tip_number
+      to = api.get_tip_number.to_i
       results = []
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_lock_hash(hash, current_from, current_to)
+        cells = api.get_cells_by_lock_hash(hash, current_from.to_s, current_to.to_s)
         cells_with_data = cells.map do |cell|
           tx = api.get_transaction(cell[:out_point][:hash])
           amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
@@ -203,12 +203,12 @@ module Ckb
 
     def get_unspent_cells
       hash = lock_hash
-      to = api.get_tip_number
+      to = api.get_tip_number.to_i
       results = []
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_lock_hash(hash, current_from, current_to)
+        cells = api.get_cells_by_lock_hash(hash, current_from.to_s, current_to.to_s)
         cells_with_data = cells.map do |cell|
           tx = get_transaction(cell[:out_point][:hash])
           amount = Ckb::Utils.hex_to_bin(tx[:outputs][cell[:out_point][:index]][:data]).unpack("Q<")[0]
@@ -234,7 +234,9 @@ module Ckb
     end
 
     def send_amount(amount, partial_tx)
-      outputs = partial_tx[:outputs]
+      outputs = partial_tx[:outputs].map do |output|
+        output.merge(capacity: output[:capacity].to_s)
+      end
       inputs = partial_tx[:inputs].map do |input|
         args = input[:args] + [outputs.length.times.to_a.join(",")]
         input.merge(args: args)
@@ -243,31 +245,31 @@ module Ckb
       i = gather_inputs(amount)
 
       input_capacities = inputs.map do |input|
-        api.get_live_cell(input[:previous_output])[:cell][:capacity]
+        api.get_live_cell(input[:previous_output])[:cell][:capacity].to_i
       end.reduce(&:+)
       output_capacities = outputs.map do |output|
-        output[:capacity]
+        output[:capacity].to_i
       end.reduce(&:+)
 
       # If there's more input capacities than output capacities, collect them
       spare_cell_capacity = input_capacities - output_capacities
       if i.amounts > amount
         outputs << {
-          capacity: i.capacities,
+          capacity: i.capacities.to_s,
           data: [i.amounts - amount].pack("Q<"),
           lock: lock,
           type: token_info.type_json_object
         }
         if spare_cell_capacity > MIN_CELL_CAPACITY
           outputs << {
-            capacity: spare_cell_capacity,
+            capacity: spare_cell_capacity.to_s,
             data: "",
             lock: wallet.lock
           }
         end
       else
         outputs << {
-          capacity: i.capacities + spare_cell_capacity,
+          capacity: (i.capacities + spare_cell_capacity).to_s,
           data: "",
           lock: wallet.lock
         }
@@ -278,7 +280,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: inputs + self_inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -294,7 +297,8 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          unlock: token_info.lock_json_object(pubkey)
+          unlock: token_info.lock_json_object(pubkey),
+          valid_since: "0"
         }
         inputs << input
         input_capacity += cell[:capacity]
@@ -302,7 +306,7 @@ module Ckb
       end
       outputs = [
         {
-          capacity: total_capacity,
+          capacity: total_capacity.to_s,
           data: [total_amount].pack("Q<"),
           lock: wallet.udt_cell_wallet(token_info).address,
           type: token_info.type_json_object
@@ -312,7 +316,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -344,7 +349,8 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          args: []
+          args: [],
+          valid_since: "0"
         }
         inputs << input
         input_capacities += cell[:capacity]
@@ -405,18 +411,19 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          args: []
+          args: [],
+          valid_since: "0"
         }
       ]
       outputs = [
         {
-          capacity: cell[:capacity],
+          capacity: cell[:capacity].to_s,
           data: [cell[:amount] - amount].pack("Q<"),
           lock: lock,
           type: token_info.type_json_object
         },
         {
-          capacity: target_cell[:capacity],
+          capacity: target_cell[:capacity].to_s,
           data: [target_cell[:amount] + amount].pack("Q<"),
           lock: target_cell[:lock],
           type: token_info.type_json_object
@@ -429,13 +436,15 @@ module Ckb
           hash: target_cell[:out_point][:hash],
           index: target_cell[:out_point][:index]
         },
-        args: []
+        args: [],
+        valid_since: "0"
       }
       tx = {
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + [target_input],
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
