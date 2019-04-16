@@ -29,12 +29,12 @@ module Ckb
     end
 
     def get_unspent_cells
-      to = api.get_tip_number
+      to = api.get_tip_number.to_i
       results = []
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_lock_hash(verify_script_hash, current_from, current_to)
+        cells = api.get_cells_by_lock_hash(verify_script_hash, current_from.to_s, current_to.to_s)
         results.concat(cells)
         current_from = current_to + 1
       end
@@ -51,14 +51,14 @@ module Ckb
 
       outputs = [
         {
-          capacity: capacity,
+          capacity: capacity.to_s,
           data: "",
           lock: target_lock
         }
       ]
       if input_capacities > capacity
         outputs << {
-          capacity: input_capacities - capacity,
+          capacity: (input_capacities - capacity).to_s,
           data: "",
           lock: lock
         }
@@ -67,7 +67,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
     end
 
@@ -88,10 +89,10 @@ module Ckb
       i = gather_inputs(capacity_to_pay, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
-      outputs = [token_output]
+      outputs = [token_output.merge(capacity: token_output[:capacity])]
       if input_capacities > capacity_to_pay
         outputs << {
-          capacity: input_capacities - capacity_to_pay,
+          capacity: (input_capacities - capacity_to_pay).to_s,
           data: "",
           lock: lock
         }
@@ -112,7 +113,7 @@ module Ckb
         raise "Cell is already created!"
       end
       cell = {
-        capacity: capacity,
+        capacity: capacity.to_s,
         data: [0].pack("Q<"),
         lock: udt_account_wallet(token_info).lock,
         type: token_info.type_json_object
@@ -128,7 +129,7 @@ module Ckb
       outputs = [cell]
       if input_capacities > capacity
         outputs << {
-          capacity: input_capacities - capacity,
+          capacity: (input_capacities - capacity).to_s,
           data: "",
           lock: self.lock
         }
@@ -137,7 +138,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       # This is in fact an OutPoint here
@@ -171,7 +173,7 @@ module Ckb
       data = [tokens].pack("Q<")
       outputs = [
         {
-          capacity: capacity,
+          capacity: capacity.to_s,
           data: data,
           lock: info.genesis_lock_json_object,
           type: info.genesis_type_json_object
@@ -179,7 +181,7 @@ module Ckb
       ]
       if input_capacities > capacity
         outputs << {
-          capacity: input_capacities - capacity,
+          capacity: (input_capacities - capacity).to_s,
           data: "",
           lock: self.lock
         }
@@ -210,7 +212,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: info)
@@ -241,35 +244,37 @@ module Ckb
             hash: wallet_cell[:out_point][:hash],
             index: wallet_cell[:out_point][:index]
           },
-          args: []
+          args: [],
+          valid_since: "0"
         },
         {
           previous_output: {
             hash: udt_genesis_cell[:out_point][:hash],
             index: udt_genesis_cell[:out_point][:index]
           },
-          args: []
+          args: [],
+          valid_since: "0"
         }
       ]
 
       outputs = [
         {
-          capacity: wallet_cell[:capacity],
+          capacity: wallet_cell[:capacity].to_s,
           data: [wallet_cell[:amount] + tokens].pack("Q<"),
           lock: wallet_cell[:lock],
           type: token_info.type_json_object
         },
         {
-          capacity: udt_genesis_cell[:capacity],
+          capacity: udt_genesis_cell[:capacity].to_s,
           data: [udt_genesis_cell[:amount] - tokens].pack("Q<"),
           lock: udt_genesis_cell[:lock],
           type: token_info.genesis_type_json_object
         },
-        paid_cell
+        paid_cell.merge(capacity: paid_cell[:capacity].to_s)
       ]
       if input_capacities > paid_capacity
         outputs << {
-          capacity: input_capacities - paid_capacity,
+          capacity: (input_capacities - paid_capacity).to_s,
           data: "",
           lock: self.lock
         }
@@ -280,7 +285,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -293,14 +299,17 @@ module Ckb
       data = [tokens].pack("Q<")
       s = Ckb::Blake2b.new
       s.update(data)
+      puts "Hashing: #{data.unpack("H*")[0]}"
       key = Secp256k1::PrivateKey.new(privkey: privkey)
+      puts "Message: #{s.digest.unpack("H*")[0]}"
       signature = key.ecdsa_serialize(key.ecdsa_sign(s.digest, raw: true))
+      puts "Signature: #{signature.unpack("H*")[0]}"
 
       i = gather_inputs(capacity, MIN_UDT_CELL_CAPACITY)
       input_capacities = i.capacities
 
       udt_cell = {
-        capacity: capacity,
+        capacity: capacity.to_s,
         data: data + signature,
         lock: wallet.lock,
         type: token_info.type_json_object
@@ -313,7 +322,7 @@ module Ckb
       outputs = [udt_cell]
       if input_capacities > capacity
         outputs << {
-          capacity: input_capacities - capacity,
+          capacity: (input_capacities - capacity).to_s,
           data: "",
           lock: self.lock
         }
@@ -322,7 +331,8 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: Ckb::Utils.sign_sighash_all_inputs(i.inputs, outputs, privkey),
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: token_info)
@@ -354,7 +364,8 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          args: [pubkey]
+          args: [pubkey],
+          valid_since: "0"
         }
         inputs << input
         input_capacities += cell[:capacity]
@@ -384,6 +395,7 @@ module Ckb
       {
         binary_hash: api.mruby_cell_hash,
         args: [
+          VERIFY_SCRIPT,
           # We could of course just hash raw bytes, but since right now CKB
           # CLI already uses this scheme, we stick to the same way for compatibility
           Ckb::Utils.bin_to_hex(pubkey_hash_bin)

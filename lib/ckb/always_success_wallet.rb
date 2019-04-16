@@ -16,15 +16,15 @@ module Ckb
 
       outputs = [
         {
-          capacity: capacity,
-          data: "",
+          capacity: capacity.to_s,
+          data: "0x",
           lock: target_lock
         }
       ]
       if input_capacities > capacity
         outputs << {
-          capacity: input_capacities - capacity,
-          data: "",
+          capacity: (input_capacities - capacity).to_s,
+          data: "0x",
           lock: lock_script_json_object
         }
       end
@@ -32,7 +32,8 @@ module Ckb
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       api.send_transaction(tx)
     end
@@ -50,11 +51,11 @@ module Ckb
       i = gather_inputs(output[:capacity], MIN_CELL_CAPACITY)
       input_capacities = i.capacities
 
-      outputs = [output]
+      outputs = [output.merge(capacity: output[:capacity].to_s)]
       if input_capacities > output[:capacity]
         outputs << {
-          capacity: input_capacities - output[:capacity],
-          data: "",
+          capacity: (input_capacities - output[:capacity]).to_s,
+          data: "0x",
           lock: lock_script_json_object
         }
       end
@@ -63,7 +64,8 @@ module Ckb
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs
+        outputs: outputs,
+        witnesses: []
       }
       hash = api.send_transaction(tx)
       {
@@ -103,12 +105,12 @@ module Ckb
     end
 
     def get_unspent_cells
-      to = api.get_tip_number
+      to = api.get_tip_number.to_i
       results = []
       current_from = 1
       while current_from <= to
         current_to = [current_from + 100, to].min
-        cells = api.get_cells_by_lock_hash(lock_hash, current_from, current_to)
+        cells = api.get_cells_by_lock_hash(lock_hash, current_from.to_s, current_to.to_s)
         results.concat(cells)
         current_from = current_to + 1
       end
@@ -128,7 +130,8 @@ module Ckb
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
           },
-          args: []
+          args: [],
+          valid_since: "0"
         }
         inputs << input
         input_capacities += cell[:capacity]

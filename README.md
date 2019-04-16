@@ -10,7 +10,9 @@ If you don't want to build mruby-contracts yourself, we have a prebuilt binary a
 
 ## Configure CKB
 
-First, follow the [README](https://github.com/nervosnetwork/ckb/blob/develop/README.md) steps to make sure CKB is up and running.
+Note this demo SDK is developed together with CKB, and it is designed mainly for experimental purposes. So When you are running the demo here, it's best to compile CKB binary from source so you can tweak CKB source as you want. In order to keep your CKB safe, it's also best to launch your own dev chain locally instead of using testnet/mainnet when using this SDK.
+
+First, follow the [README](https://github.com/nervosnetwork/ckb/blob/develop/README.md) steps to make sure CKB is properly built with dev chain used.
 
 There're optional steps here which would help you when you are using the SDK but not required:
 
@@ -18,7 +20,7 @@ There're optional steps here which would help you when you are using the SDK but
 
 By default, CKB is running Cuckoo POW algorithm, depending on the computing power your machine has, this might slow things down.
 
-To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `spec/dev.toml` file in your config directory, nagivate to `pow` section, and change the config to the following:
+To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `resource/specs/dev.toml` file in your CKB repo directory, nagivate to `pow` section, and change the config to the following:
 
 ```toml
 [pow]
@@ -27,25 +29,25 @@ func = "Dummy"
 
 Then delete `[pow.params]`
 
-This way you will be using Dummy POW mode, note that if you have run CKB before, you need to clean data directory (which is `nodes/default` by default) and restart CKB process as well as miner process.
+This way you will be using Dummy POW mode, note that if you have run CKB before, you need to clean data directory (which is `data` by default in the directory where you run CKB), rebuild your CKB binary, then launch CKB again.
 
 ### Enlarge miner reward
 
 By default, CKB issues 50000 capacities to a block, however, since we will need to install a binary which is roughly 1.6MB here, it might take quite a while for CKB to miner enough capacities. So you might want to enlarge miner reward to speedup this process.
 
-To do this, locate `spec/dev.toml` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
+To do this, locate `resorces/specs/dev.toml` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
 
 ```toml
 initial_block_reward = 5000000
 ```
 
-Note that if you have run CKB before, you need to clean data directory (which is `nodes/default` by default) and restart CKB process as well as miner process.
+Note that if you have run CKB before, you need to clean data directory (which is `data` by default in the directory where you run CKB), rebuild your CKB binary, then launch CKB again.
 
 ### Custom log config
 
 By default CKB doesn't emit any debug log entries, but when you are playing with the SDK, chances are you will be interested in certain debug logs.
 
-To change this, locate `default.toml` file in your config directory, navigate to `logger` section, and adjust `filter` field to the following:
+To change this, locate `ckb.toml` file in the directory where you initialize and run CKB, navigate to `logger` section, and adjust `filter` field to the following:
 
 ```toml
 filter = "info,chain=debug,script=debug"
@@ -212,14 +214,15 @@ We have also designed a user defined token with a fixed upper cap. For this type
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "e79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-# Create a genesis UDT cell with 10000 capacity, the UDT has a fixed amount of 10000000.
+ # Create a genesis UDT cell with 20000 capacity, the UDT has a fixed amount of 10000000.
 # The initial exchange rate is 1 capacity for 5 tokens.
-[3] pry(main)> result = bob.create_fixed_amount_token(10000, 10000000, 5)
+[3] pry(main)> result = bob.create_fixed_amount_token(20000, 10000000, 5)
 [4] pry(main)> fixed_token_info = result.token_info
 # Creates a UDT wallet that uses only one cell, the cell has a capacity of 11111
 [5] pry(main)> alice.create_udt_account_wallet_cell(11111, fixed_token_info)
-# Purchase 500 UDT tokens
-[6] pry(main)> alice.purchase_fixed_amount_token(500, fixed_token_info)
+
+ # Purchase 50000 UDT tokens
+[6] pry(main)> alice.purchase_fixed_amount_token(50000, fixed_token_info)
 # Wait for a while here...
 [7] pry(main)> alice.udt_account_wallet(fixed_token_info).get_balance
 ```
