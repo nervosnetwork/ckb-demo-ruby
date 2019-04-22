@@ -37,7 +37,7 @@ module Ckb
 
       new(
         capacity: h[:capacity],
-        data: h[:data],
+        data: h[:data] || '0x',
         lock: Script.from_h(h[:lock]),
         type: h[:type].nil? ? nil : Script.from_h(h[:type])
       )

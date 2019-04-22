@@ -19,7 +19,6 @@ module Ckb
       outputs = [
         Output.new(
           capacity: capacity.to_s,
-          data: '0x',
           lock: target_lock
         )
       ]
@@ -27,7 +26,6 @@ module Ckb
       if input_capacities > capacity
         outputs << Output.new(
           capacity: (input_capacities - capacity).to_s,
-          data: '0x',
           lock: lock_script
         )
       end
@@ -36,7 +34,7 @@ module Ckb
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs,
+        outputs: outputs
       )
       api.send_transaction(tx)
     end
@@ -58,7 +56,6 @@ module Ckb
       if input_capacities > output.capacity.to_i
         outputs << Output.new(
           capacity: (input_capacities - output.capacity.to_i).to_s,
-          data: '0x',
           lock: lock_script
         )
       end
@@ -67,7 +64,7 @@ module Ckb
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs,
+        outputs: outputs
       )
       hash = api.send_transaction(tx)
       {

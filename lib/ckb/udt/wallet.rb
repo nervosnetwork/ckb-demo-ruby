@@ -47,14 +47,12 @@ module Ckb
           if spare_cell_capacity > MIN_CELL_CAPACITY
             outputs << Output.new(
               capacity: spare_cell_capacity.to_s,
-              data: '0x',
               lock: wallet.lock
             )
           end
         else
           outputs << Output.new(
             capacity: (i.capacities + spare_cell_capacity).to_s,
-            data: '0x',
             lock: wallet.lock
           )
         end
@@ -65,7 +63,7 @@ module Ckb
           version: 0,
           deps: [api.mruby_out_point],
           inputs: inputs + self_inputs,
-          outputs: outputs,
+          outputs: outputs
         )
         api.send_transaction(tx)
       end
@@ -100,7 +98,7 @@ module Ckb
           version: 0,
           deps: [api.mruby_out_point],
           inputs: inputs,
-          outputs: outputs,
+          outputs: outputs
         ).sign_sighash_all_inputs(@key.privkey)
         api.send_transaction(tx)
       end
