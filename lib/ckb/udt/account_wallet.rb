@@ -85,7 +85,6 @@ module Ckb
           deps: [api.mruby_out_point],
           inputs: signed_inputs + [target_input],
           outputs: outputs,
-          witnesses: []
         )
         api.send_transaction(tx)
       end

@@ -80,7 +80,6 @@ module Ckb
         deps: [api.mruby_out_point],
         inputs: i.inputs,
         outputs: outputs,
-        witnesses: []
       ).sign_sighash_all_inputs(@key)
     end
 
@@ -159,7 +158,6 @@ module Ckb
         deps: [api.mruby_out_point],
         inputs: i.inputs,
         outputs: outputs,
-        witnesses: []
       ).sign_sighash_all_inputs(@key)
 
       hash = api.send_transaction(tx)
@@ -256,7 +254,6 @@ module Ckb
         deps: [api.mruby_out_point],
         inputs: i.inputs,
         outputs: outputs,
-        witnesses: []
       ).sign_sighash_all_inputs(@key)
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: info)
@@ -331,7 +328,6 @@ module Ckb
         deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
         outputs: outputs,
-        witnesses: []
       )
       api.send_transaction(tx)
     end
@@ -383,7 +379,6 @@ module Ckb
         deps: [api.mruby_out_point],
         inputs: i.inputs,
         outputs: outputs,
-        witnesses: []
       ).sign_sighash_all_inputs(@key)
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: token_info)

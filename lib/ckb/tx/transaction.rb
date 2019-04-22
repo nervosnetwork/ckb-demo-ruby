@@ -28,7 +28,7 @@ module Ckb
         deps: h[:deps],
         inputs: h[:inputs].map { |i| Input.from_h(i) },
         outputs: h[:outputs].map { |o| Output.from_h(o) },
-        witnesses: h[:witnesses]
+        witnesses: h[:witnesses] || []
       )
     end
 
