@@ -6,8 +6,8 @@ require 'net/http'
 require 'uri'
 
 module Ckb
-  URL = "http://localhost:8114"
-  DEFAULT_CONFIGURATION_FILENAME = File.expand_path("../../../conf.json", __FILE__)
+  URL = 'http://localhost:8114'.freeze
+  DEFAULT_CONFIGURATION_FILENAME = File.expand_path('../../conf.json', __dir__)
 
   class Api
     attr_reader :uri
@@ -25,13 +25,12 @@ module Ckb
     def rpc_request(method, params: nil)
       http = Net::HTTP.new(uri.host, uri.port)
       request = Net::HTTP::Post.new(uri.request_uri)
-      request.body = { id: 1, jsonrpc: "2.0", method: "#{method}", params: params }.to_json
-      request["Content-Type"] = "application/json"
+      request.body = { id: 1, jsonrpc: '2.0', method: method.to_s, params: params }.to_json
+      request['Content-Type'] = 'application/json'
       response = http.request(request)
       result = JSON.parse(response.body, symbolize_names: true)
-      if result[:error]
-        raise "jsonrpc error: #{result[:error]}"
-      end
+      raise "jsonrpc error: #{result[:error]}" if result[:error]
+
       result
     end
 
@@ -62,34 +61,34 @@ module Ckb
     end
 
     def genesis_block
-      @__genesis_block ||= get_block(get_block_hash(0))
+      @__genesis_block ||= get_block(get_block_hash('0'))
     end
 
     def get_block_hash(block_number)
-      rpc_request("get_block_hash", params: [block_number])[:result]
+      rpc_request('get_block_hash', params: [block_number])[:result]
     end
 
     def get_block(block_hash_hex)
-      rpc_request("get_block", params: [block_hash_hex])[:result]
+      rpc_request('get_block', params: [block_hash_hex])[:result]
     end
 
     def get_tip_header
-      rpc_request("get_tip_header")[:result]
+      rpc_request('get_tip_header')[:result]
     end
 
     def get_tip_block_number
-      rpc_request("get_tip_block_number")[:result]
+      rpc_request('get_tip_block_number')[:result]
     end
 
     alias get_tip_number get_tip_block_number
 
     def get_cells_by_lock_hash(hash_hex, from, to)
       params = [hash_hex, from, to]
-      rpc_request("get_cells_by_lock_hash", params: params)[:result]
+      rpc_request('get_cells_by_lock_hash', params: params)[:result]
     end
 
     def get_transaction(tx_hash_hex)
-      rpc_request("get_transaction", params: [tx_hash_hex])[:result]
+      rpc_request('get_transaction', params: [tx_hash_hex])[:result]
     end
 
     def get_live_cell(out_point)
@@ -98,25 +97,24 @@ module Ckb
         hash: out_point[:hash],
         index: out_point[:index]
       }
-      rpc_request("get_live_cell", params: [normalized_out_point])[:result]
+      rpc_request('get_live_cell', params: [normalized_out_point])[:result]
     end
 
     def send_transaction(transaction)
-      transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
-      rpc_request("send_transaction", params: [transaction])[:result]
+      tx = transaction.normalize_for_json!.to_h
+      rpc_request('send_transaction', params: [tx])[:result]
     end
 
     def local_node_info
-      rpc_request("local_node_info")[:result]
+      rpc_request('local_node_info')[:result]
     end
 
     def trace_transaction(transaction)
-      transaction = Ckb::Utils.normalize_tx_for_json!(transaction)
-      rpc_request("trace_transaction", params: [transaction])[:result]
+      rpc_request('trace_transaction', params: [transaction])[:result]
     end
 
     def get_transaction_trace(hash)
-      rpc_request("get_transaction_trace", params: [hash])[:result]
+      rpc_request('get_transaction_trace', params: [hash])[:result]
     end
   end
 end
