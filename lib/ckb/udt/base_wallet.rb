@@ -7,7 +7,9 @@ module Ckb
       attr_reader :key
       attr_reader :token_info
 
-      # privkey => hex
+      # @param api [Ckb::Api]
+      # @param privkey [String] "0x..."
+      # @param token_info [Udt::TokenInfo | Udt::FixedAmountTokenInfo]
       def initialize(api, privkey, token_info)
         @key = Ckb::Key.new(privkey)
 
