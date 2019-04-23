@@ -16,7 +16,7 @@ module Ckb
       @blake2b = self.class.generate
     end
 
-    # @param [String] string, not bin
+    # @param message [String] string, not bin
     def update(message)
       @blake2b.update(message)
       @blake2b

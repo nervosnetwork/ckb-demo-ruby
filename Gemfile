@@ -6,3 +6,4 @@ gem "pry"
 gem 'minitest', '~> 5.11', '>= 5.11.3'
 gem 'rake', '~> 12.3', '>= 12.3.2'
 gem 'rbnacl', '~> 6.0', '>= 6.0.1'
+gem 'awesome_print'

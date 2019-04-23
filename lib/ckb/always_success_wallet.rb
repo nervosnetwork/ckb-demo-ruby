@@ -1,6 +1,6 @@
-require_relative "api"
-require_relative "utils"
-require_relative "blake2b"
+require_relative 'api'
+require_relative 'utils'
+require_relative 'blake2b'
 
 module Ckb
   class AlwaysSuccessWallet
@@ -10,63 +10,62 @@ module Ckb
       @api = api
     end
 
+    # @param target_lock [Ckb::Script]
+    # @param capacity [Integer]
     def send_capacity(target_lock, capacity)
       i = gather_inputs(capacity, MIN_CELL_CAPACITY)
       input_capacities = i.capacities
 
       outputs = [
-        {
+        Output.new(
           capacity: capacity.to_s,
-          data: "0x",
           lock: target_lock
-        }
+        )
       ]
+
       if input_capacities > capacity
-        outputs << {
+        outputs << Output.new(
           capacity: (input_capacities - capacity).to_s,
-          data: "0x",
-          lock: lock_script_json_object
-        }
+          lock: lock_script
+        )
       end
-      tx = {
+
+      tx = Transaction.new(
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs,
-        witnesses: []
-      }
+        outputs: outputs
+      )
       api.send_transaction(tx)
     end
 
     def install_mruby_cell!(mruby_cell_filename)
       data = File.read(mruby_cell_filename)
-      cell_hash = Ckb::Utils.bin_to_prefix_hex(Ckb::Blake2b.digest(data))
-      output = {
+      cell_hash = Ckb::Utils.bin_to_hex(Ckb::Blake2b.digest(data))
+      output = Output.new(
         capacity: 0,
         data: data,
-        lock: lock_script_json_object
-      }
-      output[:capacity] = Ckb::Utils.calculate_cell_min_capacity(output)
+        lock: lock_script
+      )
+      output.capacity = output.calculate_min_capacity.to_s
 
-      i = gather_inputs(output[:capacity], MIN_CELL_CAPACITY)
+      i = gather_inputs(output.capacity.to_i, MIN_CELL_CAPACITY)
       input_capacities = i.capacities
 
-      outputs = [output.merge(capacity: output[:capacity].to_s)]
-      if input_capacities > output[:capacity]
-        outputs << {
-          capacity: (input_capacities - output[:capacity]).to_s,
-          data: "0x",
-          lock: lock_script_json_object
-        }
+      outputs = [output]
+      if input_capacities > output.capacity.to_i
+        outputs << Output.new(
+          capacity: (input_capacities - output.capacity.to_i).to_s,
+          lock: lock_script
+        )
       end
 
-      tx = {
+      tx = Transaction.new(
         version: 0,
         deps: [],
         inputs: i.inputs,
-        outputs: outputs,
-        witnesses: []
-      }
+        outputs: outputs
+      )
       hash = api.send_transaction(tx)
       {
         out_point: {
@@ -79,29 +78,37 @@ module Ckb
 
     def configuration_installed?(configuration)
       cell_with_status = api.get_live_cell(configuration[:out_point])
-      return false if cell_with_status[:status] != "live"
-      returned_cell_hash = Ckb::Utils.bin_to_prefix_hex(
-        Ckb::Blake2b.digest(Ckb::Utils.hex_to_bin(cell_with_status[:cell][:data])))
+      return false if cell_with_status[:status] != 'live'
+
+      returned_cell_hash = Ckb::Utils.bin_to_hex(
+        Ckb::Blake2b.digest(
+          Ckb::Utils.hex_to_bin(
+            cell_with_status[:cell][:data]
+          )
+        )
+      )
       unless returned_cell_hash == configuration[:cell_hash]
         raise "Cell hash doesn't match, something weird is happening!"
       end
+
       true
     end
 
     def get_balance
-      get_unspent_cells.map { |c| c[:capacity] }.reduce(0, &:+)
+      get_unspent_cells.map { |c| c[:capacity].to_i }.reduce(0, &:+)
     end
 
     private
+
     def lock_hash
-      @__lock_hash ||= Ckb::Utils.json_script_to_hash(lock_script_json_object)
+      @__lock_hash ||= lock_script.to_hash
     end
 
-    def lock_script_json_object
-      {
-        binary_hash: "0x0000000000000000000000000000000000000000000000000000000000000001",
+    def lock_script
+      Script.new(
+        binary_hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
         args: []
-      }
+      )
     end
 
     def get_unspent_cells
@@ -125,16 +132,16 @@ module Ckb
       input_capacities = 0
       inputs = []
       get_unspent_cells.each do |cell|
-        input = {
-          previous_output: {
+        input = Input.new(
+          previous_output: OutPoint.new(
             hash: cell[:out_point][:hash],
             index: cell[:out_point][:index]
-          },
+          ),
           args: [],
-          valid_since: "0"
-        }
+          valid_since: '0'
+        )
         inputs << input
-        input_capacities += cell[:capacity]
+        input_capacities += cell[:capacity].to_i
         if input_capacities >= capacity && (input_capacities - capacity) >= min_capacity
           break
         end
@@ -142,6 +149,7 @@ module Ckb
       if input_capacities < capacity
         raise "Not enough capacity, required: #{capacity}, available: #{input_capacities}"
       end
+
       OpenStruct.new(inputs: inputs, capacities: input_capacities)
     end
   end
