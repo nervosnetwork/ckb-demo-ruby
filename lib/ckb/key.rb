@@ -4,7 +4,7 @@ require "secp256k1"
 require "securerandom"
 
 module Ckb
-	class Key
+  class Key
     attr_reader :privkey, :pubkey
 
     # @param privkey [String] hex string
@@ -33,5 +33,5 @@ module Ckb
       pubkey_bin = Secp256k1::PrivateKey.new(privkey: privkey_bin).pubkey.serialize
       Utils.bin_to_hex(pubkey_bin)
     end
-	end
+  end
 end
