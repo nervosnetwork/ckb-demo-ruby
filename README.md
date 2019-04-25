@@ -80,7 +80,7 @@ We will need the `argv_source_entry` file as mentioned in `Prerequisite` section
 ```ruby
 [1] pry(main)> asw = Ckb::AlwaysSuccessWallet.new(api)
 [2] pry(main)> conf = asw.install_mruby_cell!("/path/to/argv_source_entry")
-=> {:out_point=>{:hash=>"0x20b849ffe67eb5872eca0d68fff1de193f07354ea903948ade6a3c170d89e282", :index=>0},
+=> {:out_point=>{:tx_hash=>"0x20b849ffe67eb5872eca0d68fff1de193f07354ea903948ade6a3c170d89e282", :index=>0},
  :cell_hash=>"0x03dba46071a6702b39c1e626f469b4ed9460ed0ad92cf2e21456c34e1e2b04fd"}
 [3] pry(main)> asw.configuration_installed?(conf)
 => false

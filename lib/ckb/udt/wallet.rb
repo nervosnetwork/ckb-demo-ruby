@@ -76,11 +76,11 @@ module Ckb
         get_unspent_cells.each do |cell|
           input = Input.new(
             previous_output: OutPoint.new(
-              hash: cell[:out_point][:hash],
+              tx_hash: cell[:out_point][:tx_hash],
               index: cell[:out_point][:index]
             ),
             lock: token_info.lock(pubkey),
-            valid_since: '0'
+            since: '0'
           )
           inputs << input
           total_capacity += cell[:capacity].to_i
@@ -134,11 +134,11 @@ module Ckb
         get_unspent_cells.each do |cell|
           input = Input.new(
             previous_output: OutPoint.new(
-              hash: cell[:out_point][:hash],
+              tx_hash: cell[:out_point][:tx_hash],
               index: cell[:out_point][:index]
             ),
             args: [],
-            valid_since: '0'
+            since: '0'
           )
           inputs << input
           input_capacities += cell[:capacity].to_i

@@ -2,16 +2,16 @@
 
 module Ckb
   class OutPoint
-    attr_accessor :hash, :index
+    attr_accessor :tx_hash, :index
 
-    def initialize(hash:, index:)
-      @hash = hash
+    def initialize(tx_hash:, index:)
+      @tx_hash = tx_hash
       @index = index
     end
 
     def to_h
       {
-        hash: @hash,
+        tx_hash: @tx_hash,
         index: @index
       }
     end
@@ -21,7 +21,7 @@ module Ckb
       return h if h.is_a?(OutPoint)
 
       new(
-        hash: h[:hash],
+        tx_hash: h[:hash],
         index: h[:index]
       )
     end
