@@ -24,7 +24,7 @@ module Ckb
       # @return [Ckb::Script]
       def lock(pubkey)
         Script.new(
-          binary_hash: api.mruby_cell_hash,
+          code_hash: api.mruby_cell_hash,
           args: [
             account_wallet ? UNLOCK_SINGLE_CELL_SCRIPT : UNLOCK_SCRIPT,
             name,
@@ -36,7 +36,7 @@ module Ckb
       # @return [Ckb::Script]
       def type
         Script.new(
-          binary_hash: api.mruby_cell_hash,
+          code_hash: api.mruby_cell_hash,
           args: [
             CONTRACT_SCRIPT,
             name,

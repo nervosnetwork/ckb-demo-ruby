@@ -102,7 +102,7 @@ module Ckb
       sighash_type = 0x1.to_s
       s.update(sighash_type)
       inputs.each do |input|
-        s.update(Ckb::Utils.hex_to_bin(input.previous_output.hash))
+        s.update(Ckb::Utils.hex_to_bin(input.previous_output.tx_hash))
         s.update(input.previous_output.index.to_s)
       end
       outputs.each do |output|
@@ -145,7 +145,7 @@ module Ckb
         s.update(sighash_type)
         s.update(
           Ckb::Utils.hex_to_bin(
-            input.previous_output.hash
+            input.previous_output.tx_hash
           )
         )
         s.update(

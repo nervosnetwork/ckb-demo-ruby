@@ -48,11 +48,11 @@ module Ckb
         inputs = [
           Input.new(
             previous_output: OutPoint.new(
-              hash: cell[:out_point][:hash],
+              tx_hash: cell[:out_point][:tx_hash],
               index: cell[:out_point][:index]
             ),
             args: [],
-            valid_since: '0'
+            since: '0'
           )
         ]
         outputs = [
@@ -73,18 +73,18 @@ module Ckb
         # This doesn't need a signature
         target_input = Input.new(
           previous_output: OutPoint.new(
-            hash: target_cell[:out_point][:hash],
+            tx_hash: target_cell[:out_point][:tx_hash],
             index: target_cell[:out_point][:index]
           ),
           args: [],
-          valid_since: '0'
+          since: '0'
         )
 
         tx = Transaction.new(
           version: 0,
           deps: [api.mruby_out_point],
           inputs: signed_inputs + [target_input],
-          outputs: outputs,
+          outputs: outputs
         )
         api.send_transaction(tx)
       end

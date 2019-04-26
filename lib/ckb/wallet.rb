@@ -79,7 +79,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: i.inputs,
-        outputs: outputs,
+        outputs: outputs
       ).sign_sighash_all_inputs(@key)
     end
 
@@ -157,14 +157,14 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: i.inputs,
-        outputs: outputs,
+        outputs: outputs
       ).sign_sighash_all_inputs(@key)
 
-      hash = api.send_transaction(tx)
+      tx_hash = api.send_transaction(tx)
 
       # This is in fact an OutPoint here
       OutPoint.new(
-        hash: hash,
+        tx_hash: tx_hash,
         index: 0
       )
     end
@@ -184,7 +184,7 @@ module Ckb
 
       ms = Ckb::Blake2b.new
       i.inputs.each do |input|
-        ms.update(Ckb::Utils.hex_to_bin(input.previous_output.hash))
+        ms.update(Ckb::Utils.hex_to_bin(input.previous_output.tx_hash))
         ms.update(input.previous_output.index.to_s)
       end
 
@@ -221,7 +221,7 @@ module Ckb
       i.inputs.each do |input|
         s.update(
           Ckb::Utils.hex_to_bin(
-            input.previous_output.hash
+            input.previous_output.tx_hash
           )
         )
         s.update(input.previous_output.index.to_s)
@@ -253,7 +253,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: i.inputs,
-        outputs: outputs,
+        outputs: outputs
       ).sign_sighash_all_inputs(@key)
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: info)
@@ -283,19 +283,19 @@ module Ckb
       additional_inputs = [
         Input.new(
           previous_output: OutPoint.new(
-            hash: wallet_cell[:out_point][:hash],
+            tx_hash: wallet_cell[:out_point][:tx_hash],
             index: wallet_cell[:out_point][:index]
           ),
           args: [],
-          valid_since: '0'
+          since: '0'
         ),
         Input.new(
           previous_output: OutPoint.new(
-            hash: udt_genesis_cell[:out_point][:hash],
+            tx_hash: udt_genesis_cell[:out_point][:tx_hash],
             index: udt_genesis_cell[:out_point][:index]
           ),
           args: [],
-          valid_since: '0'
+          since: '0'
         )
       ]
 
@@ -327,7 +327,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: signed_inputs + additional_inputs,
-        outputs: outputs,
+        outputs: outputs
       )
       api.send_transaction(tx)
     end
@@ -378,7 +378,7 @@ module Ckb
         version: 0,
         deps: [api.mruby_out_point],
         inputs: i.inputs,
-        outputs: outputs,
+        outputs: outputs
       ).sign_sighash_all_inputs(@key)
       hash = api.send_transaction(tx)
       OpenStruct.new(tx_hash: hash, token_info: token_info)
@@ -416,11 +416,11 @@ module Ckb
       get_unspent_cells.each do |cell|
         input = Input.new(
           previous_output: OutPoint.new(
-            hash: cell[:out_point][:hash],
+            tx_hash: cell[:out_point][:tx_hash],
             index: cell[:out_point][:index]
           ),
           args: [@key.pubkey],
-          valid_since: '0'
+          since: '0'
         )
         inputs << input
         input_capacities += cell[:capacity].to_i
@@ -435,7 +435,7 @@ module Ckb
 
     def verify_script
       Script.new(
-        binary_hash: api.mruby_cell_hash,
+        code_hash: api.mruby_cell_hash,
         args: [
           VERIFY_SCRIPT,
           # We could of course just hash raw bytes, but since right now CKB

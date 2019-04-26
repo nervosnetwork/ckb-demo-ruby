@@ -36,7 +36,7 @@ module Ckb
           current_to = [current_from + 100, to].min
           cells = api.get_cells_by_lock_hash(hash, current_from.to_s, current_to.to_s)
           cells_with_data = cells.map do |cell|
-            tx = api.get_transaction(cell[:out_point][:hash])
+            tx = api.get_transaction(cell[:out_point][:tx_hash])
             amount = Ckb::Utils.hex_to_bin(
               tx[:outputs][cell[:out_point][:index]][:data]
             ).unpack('Q<')[0]
@@ -59,7 +59,7 @@ module Ckb
 
       def genesis_lock
         Script.new(
-          binary_hash: api.mruby_cell_hash,
+          code_hash: api.mruby_cell_hash,
           args: [
             FIXED_AMOUNT_GENESIS_UNLOCK_SCRIPT,
             input_hash,
@@ -76,7 +76,7 @@ module Ckb
 
       def lock(pubkey)
         Script.new(
-          binary_hash: api.mruby_cell_hash,
+          code_hash: api.mruby_cell_hash,
           args: [
             UNLOCK_SINGLE_CELL_SCRIPT,
             input_hash,
@@ -87,7 +87,7 @@ module Ckb
 
       def type
         Script.new(
-          binary_hash: api.mruby_cell_hash,
+          code_hash: api.mruby_cell_hash,
           args: [
             FIXED_AMOUNT_CONTRACT_SCRIPT,
             input_hash,

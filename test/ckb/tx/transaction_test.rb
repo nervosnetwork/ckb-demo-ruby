@@ -8,7 +8,7 @@ class Ckb::TransactionTest < Minitest::Test
       inputs: [
         {
           previous_output: {
-            hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            tx_hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
             index: 4_294_967_295
           },
           args: []
@@ -20,7 +20,7 @@ class Ckb::TransactionTest < Minitest::Test
           data: '0x',
           lock: {
             args: ['0x616263'],
-            binary_hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            code_hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
             version: 0
           },
           type: nil
@@ -34,7 +34,7 @@ class Ckb::TransactionTest < Minitest::Test
       inputs: [
         {
           previous_output: {
-            hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            tx_hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
             index: 4_294_967_295
           },
           args: []
@@ -46,7 +46,7 @@ class Ckb::TransactionTest < Minitest::Test
           data: '',
           lock: {
             args: ['abc'],
-            binary_hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            code_hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
             version: 0
           },
           type: nil

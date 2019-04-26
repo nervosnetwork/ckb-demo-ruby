@@ -66,10 +66,10 @@ module Ckb
         inputs: i.inputs,
         outputs: outputs
       )
-      hash = api.send_transaction(tx)
+      tx_hash = api.send_transaction(tx)
       {
         out_point: {
-          hash: hash,
+          tx_hash: tx_hash,
           index: 0
         },
         cell_hash: cell_hash
@@ -106,7 +106,7 @@ module Ckb
 
     def lock_script
       Script.new(
-        binary_hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+        code_hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
         args: []
       )
     end
@@ -134,11 +134,11 @@ module Ckb
       get_unspent_cells.each do |cell|
         input = Input.new(
           previous_output: OutPoint.new(
-            hash: cell[:out_point][:hash],
+            tx_hash: cell[:out_point][:tx_hash],
             index: cell[:out_point][:index]
           ),
           args: [],
-          valid_since: '0'
+          since: '0'
         )
         inputs << input
         input_capacities += cell[:capacity].to_i

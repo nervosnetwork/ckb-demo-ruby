@@ -51,7 +51,7 @@ class Ckb::ApiTest < Minitest::Test
 
   def test_get_transaction
     genesis_block = api.genesis_block
-    tx = genesis_block[:"commit_transactions"].first
+    tx = genesis_block[:transactions].first
     result = api.get_transaction(tx[:hash])
     refute_nil result
     assert_equal tx[:hash], result[:hash]
