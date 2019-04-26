@@ -11,7 +11,7 @@ class Ckb::OutputTest < Minitest::Test
       }
     )
 
-    min_capacity = 41
+    min_capacity = 41 * 10**8
 
     assert_equal output.calculate_min_capacity, min_capacity
   end
