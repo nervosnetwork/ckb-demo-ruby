@@ -20,7 +20,7 @@ There're optional steps here which would help you when you are using the SDK but
 
 By default, CKB is running Cuckoo POW algorithm, depending on the computing power your machine has, this might slow things down.
 
-To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `resource/specs/dev.toml` file in your CKB repo directory, nagivate to `pow` section, and change the config to the following:
+To change to Dummy POW mode, which merely sleeps randomly for a few seconds before issuing a block, please locate `resource/specs/dev.toml` file in your CKB repo directory, navigate to `pow` section, and change the config to the following:
 
 ```toml
 [pow]
@@ -35,7 +35,7 @@ This way you will be using Dummy POW mode, note that if you have run CKB before,
 
 By default, CKB issues 50000 capacities to a block, however, since we will need to install a binary which is roughly 1.6MB here, it might take quite a while for CKB to miner enough capacities. So you might want to enlarge miner reward to speedup this process.
 
-To do this, locate `resorces/specs/dev.toml` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
+To do this, locate `resources/specs/dev.toml` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
 
 ```toml
 initial_block_reward = 5000000
@@ -89,7 +89,7 @@ We will need the `argv_source_entry` file as mentioned in `Prerequisite` section
 => true
 ```
 
-Now you have the mruby contract installed in CKB, and the relavant configuration in `conf` structure. You can inform `api` object to use this configuration:
+Now you have the mruby contract installed in CKB, and the relevant configuration in `conf` structure. You can inform `api` object to use this configuration:
 
 ```ruby
 [1] pry(main)> api.set_and_save_default_configuration!(conf)
