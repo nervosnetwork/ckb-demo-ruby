@@ -94,7 +94,7 @@ module Ckb
     def get_live_cell(out_point)
       # This way we can detect type errors early instead of weird RPC errors
       normalized_out_point = {
-        hash: out_point[:hash],
+        tx_hash: out_point[:tx_hash],
         index: out_point[:index]
       }
       rpc_request('get_live_cell', params: [normalized_out_point])[:result]
