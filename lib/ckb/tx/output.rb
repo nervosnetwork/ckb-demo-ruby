@@ -18,7 +18,7 @@ module Ckb
     end
 
     def calculate_min_capacity
-      capacity = 8 + @data.bytesize + @lock.calculate_capacity
+      capacity = Utils.to_shannon(8 + @data.bytesize) + @lock.calculate_capacity
       capacity += @type.calculate_capacity if @type
       capacity
     end

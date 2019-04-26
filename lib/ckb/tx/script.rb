@@ -15,7 +15,7 @@ module Ckb
     def calculate_capacity
       capacity = 1 + (@args || []).map(&:bytesize).reduce(0, &:+)
       capacity += Ckb::Utils.hex_to_bin(@code_hash).bytesize if @code_hash
-      capacity
+      Utils.to_shannon(capacity)
     end
 
     # @return [String] "0x..."
