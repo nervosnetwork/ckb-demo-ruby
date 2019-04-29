@@ -11,7 +11,7 @@ class Ckb::OutputTest < Minitest::Test
       }
     )
 
-    min_capacity = Ckb.Utils.byte_to_shannon(41)
+    min_capacity = Ckb::Utils.byte_to_shannon(41)
 
     assert_equal output.calculate_min_capacity, min_capacity
   end

@@ -1,8 +1,8 @@
 require 'secp256k1'
 
 module Ckb
-  MIN_CELL_CAPACITY = Utils.byte_to_shannon(40)
-  MIN_UDT_CELL_CAPACITY = Utils.byte_to_shannon(48)
+  MIN_CELL_CAPACITY = 40 * 10**8
+  MIN_UDT_CELL_CAPACITY = 48 * 10**8
 
   module Utils
     def self.hex_to_bin(str)
