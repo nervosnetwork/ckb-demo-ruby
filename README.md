@@ -10,11 +10,11 @@ If you don't want to build mruby-contracts yourself, we have a prebuilt binary a
 
 ## Configure CKB
 
-Note this demo SDK is developed together with CKB, and it is designed mainly for experimental purposes. So When you are running the demo here, it's best to compile CKB binary from source so you can tweak CKB source as you want. In order to keep your CKB safe, it's also best to launch your own dev chain locally instead of using testnet/mainnet when using this SDK.
+Note this demo is developed together with CKB, and it is designed mainly for experimental purposes. So When you are running the demo here, it's best to compile CKB binary from source so you can tweak CKB source as you want. In order to keep your CKB safe, it's also best to launch your own dev chain locally instead of using testnet/mainnet when using this demo.
 
 First, follow the [README](https://github.com/nervosnetwork/ckb/blob/develop/README.md) steps to make sure CKB is properly built with dev chain used.
 
-There're optional steps here which would help you when you are using the SDK but not required:
+There're optional steps here which would help you when you are using the demo but not required:
 
 ### Use Dummy POW mode
 
@@ -45,7 +45,7 @@ Note that if you have run CKB before, you need to clean data directory (which is
 
 ### Custom log config
 
-By default CKB doesn't emit any debug log entries, but when you are playing with the SDK, chances are you will be interested in certain debug logs.
+By default CKB doesn't emit any debug log entries, but when you are playing with the demo, chances are you will be interested in certain debug logs.
 
 To change this, locate `ckb.toml` file in the directory where you initialize and run CKB, navigate to `logger` section, and adjust `filter` field to the following:
 
@@ -53,15 +53,15 @@ To change this, locate `ckb.toml` file in the directory where you initialize and
 filter = "info,chain=debug,script=debug"
 ```
 
-Now when you restart your CKB main process, you will have debug log entries from `chain` and `script` modules, which will be quite useful when you play with this SDK.
+Now when you restart your CKB main process, you will have debug log entries from `chain` and `script` modules, which will be quite useful when you play with this demo.
 
-## Running SDK
+## Running demo
 
-Now we can setup the Ruby SDK:
+Now we can setup the Ruby demo:
 
 ```bash
-$ git clone --recursive https://github.com/nervosnetwork/ckb-demo-ruby-sdk
-$ cd ckb-demo-ruby-sdk
+$ git clone --recursive https://github.com/nervosnetwork/ckb-demo-ruby
+$ cd ckb-demo-ruby
 $ bundle
 $ bundle exec pry -r ./lib/ckb/wallet.rb
 [1] pry(main)> api = Ckb::Api.new
@@ -69,9 +69,9 @@ $ bundle exec pry -r ./lib/ckb/wallet.rb
 28
 ```
 
-Please be noted that the SDK depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem and the [rbnacl](https://github.com/crypto-rb/rbnacl) gem, which require manual install of secp256k1 and libsodium library. Follow [this](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) and [this](https://github.com/crypto-rb/rbnacl#installation) to install them locally.
+Please be noted that the demo depends on the [bitcoin-secp256k1](https://github.com/cryptape/ruby-bitcoin-secp256k1) gem and the [rbnacl](https://github.com/crypto-rb/rbnacl) gem, which require manual install of secp256k1 and libsodium library. Follow [this](https://github.com/cryptape/ruby-bitcoin-secp256k1#prerequisite) and [this](https://github.com/crypto-rb/rbnacl#installation) to install them locally.
 
-In the Ruby shell, we can start playing with the SDK.
+In the Ruby shell, we can start playing with the demo.
 
 ### Install mruby contract
 
@@ -143,7 +143,7 @@ We can also create user defined token that's separate from CKB. A new user defin
 * A token name
 * Token's admin pubkey, only token's admin can issue new tokens. Other user can only transfer already created tokens to others.
 
-Ruby SDK here provides an easy way to create a token from an existing wallet
+Ruby demo here provides an easy way to create a token from an existing wallet
 
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "0xe79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
