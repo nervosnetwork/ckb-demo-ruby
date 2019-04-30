@@ -1,9 +1,6 @@
 require 'secp256k1'
 
 module Ckb
-  MIN_CELL_CAPACITY = 40
-  MIN_UDT_CELL_CAPACITY = 48
-
   module Utils
     def self.hex_to_bin(str)
       str = str[2..-1] if str.start_with?('0x')
@@ -23,5 +20,15 @@ module Ckb
 
       str
     end
+
+    # @param capacity [Integer] Byte
+    #
+    # @return [Integer] shannon
+    def self.byte_to_shannon(capacity)
+      capacity * (10**8)
+    end
   end
+
+  MIN_CELL_CAPACITY = Utils.byte_to_shannon(40)
+  MIN_UDT_CELL_CAPACITY = Utils.byte_to_shannon(48)
 end

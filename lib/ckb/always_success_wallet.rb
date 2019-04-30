@@ -11,7 +11,7 @@ module Ckb
     end
 
     # @param target_lock [Ckb::Script]
-    # @param capacity [Integer]
+    # @param capacity [Integer] shannon
     def send_capacity(target_lock, capacity)
       i = gather_inputs(capacity, MIN_CELL_CAPACITY)
       input_capacities = i.capacities

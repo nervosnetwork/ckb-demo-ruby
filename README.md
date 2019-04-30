@@ -38,7 +38,7 @@ By default, CKB issues 50000 capacities to a block, however, since we will need 
 To do this, locate `resources/specs/dev.toml` file in your config directory, navigate to `params` section, and adjust `initial_block_reward` field to the following:
 
 ```toml
-initial_block_reward = 5000000
+initial_block_reward = 500_000_000_000_000
 ```
 
 Note that if you have run CKB before, you need to clean data directory (which is `data` by default in the directory where you run CKB), rebuild your CKB binary, then launch CKB again.
@@ -56,6 +56,8 @@ filter = "info,chain=debug,script=debug"
 Now when you restart your CKB main process, you will have debug log entries from `chain` and `script` modules, which will be quite useful when you play with this demo.
 
 ## Running demo
+
+Capacity unit in SDK is shannon (1 byte = 10**8 shannon)
 
 Now we can setup the Ruby demo:
 
@@ -112,10 +114,10 @@ To play with wallets, first we need to add some capacities to a wallet:
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "0xe79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> bob.get_balance
 => 0
-[3] pry(main)> asw.send_capacity(bob.lock, 100000)
+[3] pry(main)> asw.send_capacity(bob.lock, 300000 * 10 ** 8)
 [4] pry(main)> # wait a while
 [5] pry(main)> bob.get_balance
-=> 100000
+=> 30000000000000
 ```
 
 Now we can perform normal transfers between wallets:
@@ -127,13 +129,13 @@ Now we can perform normal transfers between wallets:
 => 100000
 [4] pry(main)> alice.get_balance
 => 0
-[5] pry(main)> bob.send_capacity(alice.lock, 12345)
+[5] pry(main)> bob.send_capacity(alice.lock, 100000 * 10 ** 8)
 => "0xd7abc1407eb07d334fea86ef0e9b12b2273833137327c2a53f2d8ba1be1e4d85"
 [6] pry(main)> # wait for some time
 [7] pry(main)> alice.get_balance
-=> 12345
+=> 10000000000000
 [8] pry(main)> bob.get_balance
-=> 87655
+=> 20000000000000
 ```
 
 ### User defined token
@@ -154,11 +156,11 @@ Now we can create this token from a user with CKB capacities(since the cell used
 
 ```bash
 [9] pry(main)> bob.get_balance
-=> 87655
-[10] pry(main)> # here we are creating 10000000 tokens for "Token 1", we put those tokens in a cell with 10000 CKB capacity
-[11] pry(main)> result = bob.create_udt_token(10000, "Token 1", 10000000)
+=> 20000000000000
+[10] pry(main)> # here we are creating 10000000 tokens for "Token 1", we put those tokens in a cell with 10000 * 10**8 CKB capacity
+[11] pry(main)> result = bob.create_udt_token(10000 * 10**8, "Token 1", 10000000)
 [12] pry(main)> token_info = result.token_info
-=> #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
+=> #<Ckb::TokenInfo:0x0000561fee8cf550 @name="Token 1", @pubkey="0x024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01">
 [13] pry(main)> # token info represents the meta data for a token
 [14] pry(main)> # we can assemble a wallet for user defined token with token info structure
 [15] pry(main)> bob_token1 = bob.udt_wallet(token_info)
@@ -179,8 +181,8 @@ Notice CKB is flexible to implement many other types of transaction for this pro
 The following code fulfills this step:
 
 ```bash
-[15] pry(main)> # Alice is paying 10999 CKB capacities for 12345 token 1, alice will also spare 3010 CKB capacities to hold the returned token 1.
-[15] pry(main)> partial_tx = alice_token1.generate_partial_tx_for_udt_cell(12345, 3010, 10999)
+[15] pry(main)> # Alice is paying 10999 * 10**8 CKB capacities for 12345 token 1, alice will also spare 3010 * 10**8 CKB capacities to hold the returned token 1.
+[15] pry(main)> partial_tx = alice_token1.generate_partial_tx_for_udt_cell(12345, 10999 * 10**8, 3010 * 10**8)
 [18] pry(main)> bob_token1.send_amount(12345, partial_tx)
 [19] pry(main)> bob_token1.get_balance
 => 9987655
@@ -193,11 +195,11 @@ The following code fulfills this step:
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "0xe79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "0x76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
-[3] pry(main)> result = bob.create_udt_token(10000, "Token 2", 10000000, account_wallet: true)
+[3] pry(main)> result = bob.create_udt_token(10000 * 10**8, "Token 2", 10000000, account_wallet: true)
 [4] pry(main)> token_info2 = result.token_info
 [5] pry(main)> bob_cell_token2 = bob.udt_account_wallet(token_info2)
 [6] pry(main)> alice_cell_token2 = alice.udt_account_wallet(token_info2)
-[7] pry(main)> alice.create_udt_account_wallet_cell(3010, token_info2)
+[7] pry(main)> alice.create_udt_account_wallet_cell(20000 * 10 ** 8, token_info2)
 [8] pry(main)> bob_cell_token2.send_tokens(12345, alice_cell_token2)
 [9] pry(main)> bob_cell_token2.get_balance
 => 9987655
@@ -214,15 +216,15 @@ We have also designed a user defined token with a fixed upper cap. For this type
 ```bash
 [1] pry(main)> bob = Ckb::Wallet.from_hex(api, "0xe79f3207ea4980b7fed79956d5934249ceac4751a4fae01a0f7c4a96884bc4e3")
 [2] pry(main)> alice = Ckb::Wallet.from_hex(api, "0x76e853efa8245389e33f6fe49dcbd359eb56be2f6c3594e12521d2a806d32156")
- # Create a genesis UDT cell with 20000 capacity, the UDT has a fixed amount of 10000000.
+ # Create a genesis UDT cell with 20000 * 10**8 capacity, the UDT has a fixed amount of 10000000 * 10**8.
 # The initial exchange rate is 1 capacity for 5 tokens.
-[3] pry(main)> result = bob.create_fixed_amount_token(20000, 10000000, 5)
+[3] pry(main)> result = bob.create_fixed_amount_token(20000 * 10**8, 10000000 * 10**8, 5)
 [4] pry(main)> fixed_token_info = result.token_info
-# Creates a UDT wallet that uses only one cell, the cell has a capacity of 11111
-[5] pry(main)> alice.create_udt_account_wallet_cell(11111, fixed_token_info)
+# Creates a UDT wallet that uses only one cell, the cell has a capacity of 11111 * 10**8
+[5] pry(main)> alice.create_udt_account_wallet_cell(11111 * 10**8, fixed_token_info)
 
- # Purchase 50000 UDT tokens
-[6] pry(main)> alice.purchase_fixed_amount_token(50000, fixed_token_info)
+ # Purchase 50000 * 10**8 UDT tokens
+[6] pry(main)> alice.purchase_fixed_amount_token(50000 * 10**8, fixed_token_info)
 # Wait for a while here...
 [7] pry(main)> alice.udt_account_wallet(fixed_token_info).get_balance
 ```
