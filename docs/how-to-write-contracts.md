@@ -36,8 +36,6 @@ CKB will concat `args`, `args` of inputs and `witnesses`, then use the concatena
 
 `args` is introduced here to enable script sharing: assume 2 CKB users both want to use secp256k1 algorithm to secure their cells, in order to do this, they will need scripts for secp256k1 verification, the scripts will also need to include their public key respectively. If they put public key directly in the script binary, the difference in public keys will lead to different script binaries, which is quite a waste of resource considering the majority part of the 2 scripts here is exactly the same. To solve this problem, they can each put their public key in `args` part of the script model, then leverage the same secp256k1 script binary. This way they can save as much resource as they can while preserving different ownerships. This might not be a huge save when we are talking 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
 
-Each script has a `type hash` which uniquely identifies the script, for example, the `type hash` of unlock script, is exactly the corresponding `lock` field value in the referenced cell. When calculating type hash for a script, `code_hash` and `args` will all be used. So another way of looking at `args`, is that it really is a part of the script.
-
 In practice, one example script might look like following:
 
 ```json
