@@ -21,13 +21,10 @@ In addition to the different use cases, lock script and type script are also exe
 
 ## Script Model
 
-Both lock and type scripts are represented using the [Script](https://github.com/nervosnetwork/ckb/blob/3abf2b1f43dd27e986c8b2ee311d91e896051d3a/protocol/src/protocol.fbs#L85-L91) model. Fields in this model include:
+Both lock and type scripts are represented using the [Script](https://github.com/nervosnetwork/ckb/blob/e3b893a4e08610fcee42998dd0edef72395cfaac/protocol/src/protocol.fbs#L94-L97) model. Fields in this model include:
 
-* `version`: version field used to resolve incompatible upgrades.
-* `binary`: ELF formatted binary containing the actual RISC-V based script
-* `reference`: if your script already exists on CKB, you can use this field to *reference* the script instead of including it again. You can just put the script hash(will explain later how this is calculated) in this `reference ` field, then list the cell containing the script as a dep in current transaction. CKB would automatically locate cell, load the binary from there and use it as script `binary` part. Notice this only works when you don't provide a `binary` field value, otherwise the value in `binary` field always take precedence.
-* `signed_args`: Signed arguments, we will explain later what they are and how to distinguish them from `args`
-* `args`: Normal arguments
+* `code_hash`: **The hash of ELF formatted RISC-V binary that contains a CKB script.** For space efficiency consideration, the actual script is attached to current transaction as a dep cell, the hash specified here should match the hash of cell data part in the dep cell. The actual binary is loaded into an CKB-VM instance when they are specified upon the transaction verification.
+* `args`: **An array of arguments as the script input.** The arguments here are imported into the CKB-VM instance as input arguments for the scripts. Note that for lock scripts, the corresponding CellInput would have another args field which is appended to the array here to form the complete input argument list.
 
 CKB scripts use UNIX standard execution environment. Each script binary should contain a main function with the following signature:
 
@@ -35,29 +32,24 @@ CKB scripts use UNIX standard execution environment. Each script binary should c
 int main(int argc, char* argv[]);
 ```
 
-CKB will concat `signed_args` and `args`, then use the concatenated array to fill `argc`/`argv` part, then start the script execution. Upon termination, the executed `main` function here will provide a return code, `0` means the script execution succeeds, other values mean the execution fails.
+CKB will concat `args`, `args` of inputs and `witnesses`, then use the concatenated array to fill `argc`/`argv` part, then start the script execution. Upon termination, the executed `main` function here will provide a return code, `0` means the script execution succeeds, other values mean the execution fails.
 
-`signed_args` is introduced here to enable script sharing: assume 2 CKB users both want to use secp256k1 algorithm to secure their cells, in order to do this, they will need scripts for secp256k1 verification, the scripts will also need to include their public key respectively. If they put public key directly in the script binary, the difference in public keys will lead to different script binaries, which is quite a waste of resource considering the majority part of the 2 scripts here is exactly the same. To solve this problem, they can each put their public key in `signed_args` part of the script model, then leverage the same secp256k1 script binary. This way they can save as much resource as they can while preserving different ownerships. This might not be a huge save when we are talking 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
-
-Each script has a `type hash` which uniquely identifies the script, for example, the `type hash` of unlock script, is exactly the corresponding `lock` field value in the referenced cell. When calculating type hash for a script, `version`, `binary`, `reference` and `signed_args` will all be used. So another way of looking at `signed_args`, is that it really is a part of the script.
+`args` is introduced here to enable script sharing: assume 2 CKB users both want to use secp256k1 algorithm to secure their cells, in order to do this, they will need scripts for secp256k1 verification, the scripts will also need to include their public key respectively. If they put public key directly in the script binary, the difference in public keys will lead to different script binaries, which is quite a waste of resource considering the majority part of the 2 scripts here is exactly the same. To solve this problem, they can each put their public key in `args` part of the script model, then leverage the same secp256k1 script binary. This way they can save as much resource as they can while preserving different ownerships. This might not be a huge save when we are talking 2 users, but as the number of users grow, the resource we can save with this scheme is huge.
 
 In practice, one example script might look like following:
 
 ```json
 {
-  "version": 0,
-  "reference": "0x12b464bcab8f55822501cdb91ea35ea707d72ec970363972388a0c49b94d377c",
-  "signed_args": [
-    "024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01"
-  ],
+  "code_hash": "0x12b464bcab8f55822501cdb91ea35ea707d72ec970363972388a0c49b94d377c",
   "args": [
-    "3044022038f282cffdd26e2a050d7779ddc29be81a7e2f8a73706d2b7a6fde8a78e950ee0220538657b4c01be3e77827a82e92d33a923e864c55b88fd18cd5e5b25597432e9b",
-    "1"
+    "0x024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01",
+    "0x3044022038f282cffdd26e2a050d7779ddc29be81a7e2f8a73706d2b7a6fde8a78e950ee0220538657b4c01be3e77827a82e92d33a923e864c55b88fd18cd5e5b25597432e9b",
+    "0x1"
   ]
 }
 ```
 
-This script uses `reference` field to refer to an existing cell for script binary. It contains one `signed_args` item, which is the public key for current user. It also has 2 items for `args`: the signature calculated for current transaction, and the sighash type to use here. Note that while this example has one `signed_args` item and 2 `args` items, this is completely determined by the actual script binary running, CKB doesn't have any restrictions here.
+This script uses `code_hash` field to refer to an existing cell for script binary. It contains 3 `args` item, which is the blake160 hash of public key for current user, the signature calculated for current transaction, and the sighash type to use here. Note that while this example has 3 `args` items, this is completely determined by the actual script binary running, CKB doesn't have any restrictions here.
 
 # Writing Scripts in Ruby
 
@@ -77,24 +69,21 @@ To build `mruby-contracts`, first follow the [setup steps](https://github.com/ne
 [3] pry(main)> api.mruby_out_point
 ```
 
-`mruby_cell_hash` should be used as `reference` field in the script you assembled. `mruby_out_point` should go in the deps part of the transaction you assembled. With that, you can put the Ruby script you want to run as the first signed argument in the script:
+`mruby_cell_hash` should be used as `code_hash` field in the script you assembled. `mruby_out_point` should go in the deps part of the transaction you assembled. With that, you can put the Ruby script you want to run as the first argument in the script:
 
 ```json
 {
-  "version": 0,
-  "reference": "0x12b464bcab8f55822501cdb91ea35ea707d72ec970363972388a0c49b94d377c",
-  "signed_args": [
-    "# This contract needs 1 signed arguments:\n# 0. pubkey, used to identify token owner\n# This contracts also accepts 2 required unsigned arguments and 1\n# optional unsigned argument:\n# 1. signature, signature used to present ownership\n# 2. type, SIGHASH type\n# 3. output(s), this is only used for SIGHASH_SINGLE and SIGHASH_MULTIPLE types,\n# for SIGHASH_SINGLE, it stores an integer denoting the index of output to be\n# signed; for SIGHASH_MULTIPLE, it stores a string of `,` separated array denoting\n# outputs to sign\nif ARGV.length != 3 && ARGV.length != 4\n  raise \"Wrong number of arguments!\"\nend\n\nSIGHASH_ALL = 0x1\nSIGHASH_NONE = 0x2\nSIGHASH_SINGLE = 0x3\nSIGHASH_MULTIPLE = 0x4\nSIGHASH_ANYONECANPAY = 0x80\n\ndef hex_to_bin(s)\n  if s.start_with?(\"0x\")\n    s = s[2..-1]\n  end\n  [s].pack(\"H*\")\nend\n\n\ntx = CKB.load_tx\nblake2b = Blake2b.new\n\nblake2b.update(ARGV[2])\nsighash_type = ARGV[2].to_i\n\nif sighash_type & SIGHASH_ANYONECANPAY != 0\n  # Only hash current input\n  out_point = CKB.load_input_out_point(0, CKB::Source::CURRENT)\n  blake2b.update(out_point[\"hash\"])\n  blake2b.update(out_point[\"index\"].to_s)\n  blake2b.update(CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::LOCK_HASH).readall)\nelse\n  # Hash all inputs\n  tx[\"inputs\"].each_with_index do |input, i|\n    blake2b.update(input[\"hash\"])\n    blake2b.update(input[\"index\"].to_s)\n    blake2b.update(CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::LOCK))\n  end\nend\n\ncase sighash_type & (~SIGHASH_ANYONECANPAY)\nwhen SIGHASH_ALL\n  tx[\"outputs\"].each_with_index do |output, i|\n    blake2b.update(output[\"capacity\"].to_s)\n    blake2b.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      blake2b.update(hash)\n    end\n  end\nwhen SIGHASH_SINGLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  output_index = ARGV[3].to_i\n  output = tx[\"outputs\"][output_index]\n  blake2b.update(output[\"capacity\"].to_s)\n  blake2b.update(output[\"lock\"])\n  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n    blake2b.update(hash)\n  end\nwhen SIGHASH_MULTIPLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  ARGV[3].split(\",\").each do |output_index|\n    output_index = output_index.to_i\n    output = tx[\"outputs\"][output_index]\n    blake2b.update(output[\"capacity\"].to_s)\n    blake2b.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      blake2b.update(hash)\n    end\n  end\nend\nhash = blake2b.final\n\npubkey = ARGV[0]\nsignature = ARGV[1]\n\nunless Secp256k1.verify(hex_to_bin(pubkey), hex_to_bin(signature), hash)\n  raise \"Signature verification error!\"\nend\n",
-    "024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01"
-  ],
+  "code_hash": "0x12b464bcab8f55822501cdb91ea35ea707d72ec970363972388a0c49b94d377c",
   "args": [
-    "3044022038f282cffdd26e2a050d7779ddc29be81a7e2f8a73706d2b7a6fde8a78e950ee0220538657b4c01be3e77827a82e92d33a923e864c55b88fd18cd5e5b25597432e9b",
-    "1"
+    "# This contract needs 1 signed arguments:\n# 0. pubkey, used to identify token owner\n# This contracts also accepts 2 required unsigned arguments and 1\n# optional unsigned argument:\n# 1. signature, signature used to present ownership\n# 2. type, SIGHASH type\n# 3. output(s), this is only used for SIGHASH_SINGLE and SIGHASH_MULTIPLE types,\n# for SIGHASH_SINGLE, it stores an integer denoting the index of output to be\n# signed; for SIGHASH_MULTIPLE, it stores a string of `,` separated array denoting\n# outputs to sign\nif ARGV.length != 3 && ARGV.length != 4\n  raise \"Wrong number of arguments!\"\nend\n\nSIGHASH_ALL = 0x1\nSIGHASH_NONE = 0x2\nSIGHASH_SINGLE = 0x3\nSIGHASH_MULTIPLE = 0x4\nSIGHASH_ANYONECANPAY = 0x80\n\ndef hex_to_bin(s)\n  if s.start_with?(\"0x\")\n    s = s[2..-1]\n  end\n  [s].pack(\"H*\")\nend\n\n\ntx = CKB.load_tx\nblake2b = Blake2b.new\n\nblake2b.update(ARGV[2])\nsighash_type = ARGV[2].to_i\n\nif sighash_type & SIGHASH_ANYONECANPAY != 0\n  # Only hash current input\n  out_point = CKB.load_input_out_point(0, CKB::Source::CURRENT)\n  blake2b.update(out_point[\"hash\"])\n  blake2b.update(out_point[\"index\"].to_s)\n  blake2b.update(CKB::CellField.new(CKB::Source::CURRENT, 0, CKB::CellField::LOCK_HASH).readall)\nelse\n  # Hash all inputs\n  tx[\"inputs\"].each_with_index do |input, i|\n    blake2b.update(input[\"hash\"])\n    blake2b.update(input[\"index\"].to_s)\n    blake2b.update(CKB.load_script_hash(i, CKB::Source::INPUT, CKB::Category::LOCK))\n  end\nend\n\ncase sighash_type & (~SIGHASH_ANYONECANPAY)\nwhen SIGHASH_ALL\n  tx[\"outputs\"].each_with_index do |output, i|\n    blake2b.update(output[\"capacity\"].to_s)\n    blake2b.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(i, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      blake2b.update(hash)\n    end\n  end\nwhen SIGHASH_SINGLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  output_index = ARGV[3].to_i\n  output = tx[\"outputs\"][output_index]\n  blake2b.update(output[\"capacity\"].to_s)\n  blake2b.update(output[\"lock\"])\n  if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n    blake2b.update(hash)\n  end\nwhen SIGHASH_MULTIPLE\n  raise \"Not enough arguments\" unless ARGV[3]\n  ARGV[3].split(\",\").each do |output_index|\n    output_index = output_index.to_i\n    output = tx[\"outputs\"][output_index]\n    blake2b.update(output[\"capacity\"].to_s)\n    blake2b.update(output[\"lock\"])\n    if hash = CKB.load_script_hash(output_index, CKB::Source::OUTPUT, CKB::Category::TYPE)\n      blake2b.update(hash)\n    end\n  end\nend\nhash = blake2b.final\n\npubkey = ARGV[0]\nsignature = ARGV[1]\n\nunless Secp256k1.verify(hex_to_bin(pubkey), hex_to_bin(signature), hash)\n  raise \"Signature verification error!\"\nend\n",
+    "0x024a501efd328e062c8675f2365970728c859c592beeefd6be8ead3d901330bc01",
+    "0x3044022038f282cffdd26e2a050d7779ddc29be81a7e2f8a73706d2b7a6fde8a78e950ee0220538657b4c01be3e77827a82e92d33a923e864c55b88fd18cd5e5b25597432e9b",
+    "0x1"
   ]
 }
 ```
 
-As you can see, the first argument of `signed_args` here is just a Ruby script, with this, CKB will then first load mruby, and run your Ruby script as the actual script. If this script throws an exception, it will be translated to non-zero return code, denoting script execution error. If the script runs without exception, the script will be considered success.
+As you can see, the first argument of `args` here is just a Ruby script, with this, CKB will then first load mruby, and run your Ruby script as the actual script. If this script throws an exception, it will be translated to non-zero return code, denoting script execution error. If the script runs without exception, the script will be considered success.
 
 ## Ruby Libraries
 
@@ -167,7 +156,7 @@ CKB.debug "TX: #{tx}"
 We can then expect logs in CKB like following:
 
 ```
-2018-12-17 16:03:21.650 +08:00 TransactionPoolService DEBUG script  Transaction 5c065df07094..(omit 40)..5bcdebf47e81, input 0 DEBUG OUTPUT: TX: {"version"=>0, "deps"=>[{"hash"=>"s+\xfdV\xf4v\x87\x05cm{J\x1dc\xbc\x01]\xff\xaf)\x8e!\xe2@Gx\xb5!\xc3\x17]\xca", "index"=>2}], "inputs"=>[{"hash"=>"d\x02\x11\v\x8f\eT\xe6\xce\xe9\xcej\x82\xf9_K\x97U\f\xe1\x92\xfe\xb2\xba_\x86\xe6\x90\xb5PW\xc5", "index"=>0}], "outputs"=>[{"capacity"=>35000, "lock"=>"\xfe\x1a\xc2\xd4\xa6\xd8R\xc3\x94t>\x98\x8f\xd2\xcf\x9eI\xa7j%5n|\x8b\#@\xf6X\xef\xbc,\x1f"}, {"capacity"=>15000, "lock"=>"\x98L\xb0\xc6\a\xe5\xfa7\x8fj\x85m\x02\xdf\x82Y\x0e\xf8T\xc6\xa2>\x15\xd2\f\xe5\xda\x9f\xa4\x9d\x8f\xb2"}]}
+2018-12-17 16:03:21.650 +08:00 TransactionPoolService DEBUG script  Transaction 5c065df07094..(omit 40)..5bcdebf47e81, input 0 DEBUG OUTPUT: TX: {"version"=>0, "deps"=>[{"tx_hash"=>"s+\xfdV\xf4v\x87\x05cm{J\x1dc\xbc\x01]\xff\xaf)\x8e!\xe2@Gx\xb5!\xc3\x17]\xca", "index"=>2}], "inputs"=>[{"tx_hash"=>"d\x02\x11\v\x8f\eT\xe6\xce\xe9\xcej\x82\xf9_K\x97U\f\xe1\x92\xfe\xb2\xba_\x86\xe6\x90\xb5PW\xc5", "index"=>0}], "outputs"=>[{"capacity"=>3500000000000, "lock"=>"\xfe\x1a\xc2\xd4\xa6\xd8R\xc3\x94t>\x98\x8f\xd2\xcf\x9eI\xa7j%5n|\x8b\#@\xf6X\xef\xbc,\x1f"}, {"capacity"=>1500000000000, "lock"=>"\x98L\xb0\xc6\a\xe5\xfa7\x8fj\x85m\x02\xdf\x82Y\x0e\xf8T\xc6\xa2>\x15\xd2\f\xe5\xda\x9f\xa4\x9d\x8f\xb2"}]}
 ```
 
 Here we can see the overall transaction structure is returned by `CKB.load_tx`
@@ -198,7 +187,7 @@ CKB.debug "OutPoint: #{CKB.load_input_out_point(0, CKB::Source::CURRENT)}"
 We can then expect logs in CKB like following:
 
 ```
-2018-12-17 16:10:44.185 +08:00 TransactionPoolService DEBUG script  Transaction f424348ef9d0..(omit 40)..8f79d68c82b4, input 0 DEBUG OUTPUT: OutPoint: {"hash"=>"#~\x9ekK23\xc7\x0f%\xaa\n\xa1\xc8\xc0\x81<\x948`B\xab\x9e\xb5\xe0\xea8\xe3r\xd3\x9e\x99", "index"=>0}
+2018-12-17 16:10:44.185 +08:00 TransactionPoolService DEBUG script  Transaction f424348ef9d0..(omit 40)..8f79d68c82b4, input 0 DEBUG OUTPUT: OutPoint: {"tx_hash"=>"#~\x9ekK23\xc7\x0f%\xaa\n\xa1\xc8\xc0\x81<\x948`B\xab\x9e\xb5\xe0\xea8\xe3r\xd3\x9e\x99", "index"=>0}
 ```
 
 It's also possible to load input OutPoint from different index:
