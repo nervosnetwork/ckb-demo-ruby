@@ -72,6 +72,10 @@ module Ckb
       rpc_request('get_block', params: [block_hash_hex])[:result]
     end
 
+    def get_block_by_number(block_number)
+      rpc_request('get_block_by_number', params: [block_number.to_s])[:result]
+    end
+
     def get_tip_header
       rpc_request('get_tip_header')[:result]
     end
