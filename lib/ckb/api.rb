@@ -61,7 +61,7 @@ module Ckb
     end
 
     def genesis_block
-      @__genesis_block ||= get_block(get_block_hash('0'))
+      @__genesis_block ||= get_block_by_number("0")
     end
 
     def get_block_hash(block_number)
@@ -70,6 +70,10 @@ module Ckb
 
     def get_block(block_hash_hex)
       rpc_request('get_block', params: [block_hash_hex])[:result]
+    end
+
+    def get_block_by_number(block_number)
+      rpc_request('get_block_by_number', params: [block_number.to_s])[:result]
     end
 
     def get_tip_header
