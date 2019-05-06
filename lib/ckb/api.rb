@@ -61,7 +61,7 @@ module Ckb
     end
 
     def genesis_block
-      @__genesis_block ||= get_block(get_block_hash('0'))
+      @__genesis_block ||= get_block_by_number("0")
     end
 
     def get_block_hash(block_number)
