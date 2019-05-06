@@ -25,6 +25,11 @@ To change to Dummy POW mode, which merely sleeps randomly for a few seconds befo
 ```toml
 [pow]
 func = "Dummy"
+
+# Delay offset (in milliseconds)
+[pow.params.delay]
+type = "constant"
+value = 5000
 ```
 
 Then delete `[pow.params]`
