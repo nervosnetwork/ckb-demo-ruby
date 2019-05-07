@@ -70,7 +70,7 @@ Now we can setup the Ruby demo:
 $ git clone --recursive https://github.com/nervosnetwork/ckb-demo-ruby
 $ cd ckb-demo-ruby
 $ bundle
-$ bundle exec pry -r ./lib/ckb/wallet.rb
+$ bundle exec rake console
 [1] pry(main)> api = Ckb::Api.new
 [2] pry(main)> api.get_tip_number
 28

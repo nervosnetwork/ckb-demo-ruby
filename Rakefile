@@ -7,3 +7,11 @@ Rake::TestTask.new(:test) do |t|
 end
 
 task default: :test
+
+task :console do
+  require "pry"
+  require_relative "lib/ckb/wallet"
+  Pry.start
+end
+
+task c: :console
