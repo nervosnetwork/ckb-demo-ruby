@@ -120,5 +120,9 @@ module Ckb
     def get_transaction_trace(hash)
       rpc_request('get_transaction_trace', params: [hash])[:result]
     end
+
+    def get_current_epoch
+      rpc_request('get_current_epoch')
+    end
   end
 end
